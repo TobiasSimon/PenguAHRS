@@ -169,23 +169,22 @@ static int bma180_read_calibration(bma180_dev_t *dev)
 
 int bma180_init(bma180_dev_t *dev, i2c_bus_t *bus, bma180_range_t range, bma180_bw_t bandwidth)
 {
-	int ret = 0;
-	i2c_dev_init(&dev->i2c_dev, bus, BMA180_ADDRESS);
-
+   int ret = 0;
+   i2c_dev_init(&dev->i2c_dev, bus, BMA180_ADDRESS);
    i2c_dev_lock_bus(&dev->i2c_dev);
 
-	/* copy values */
-	dev->range = range;
-	dev->bandwidth = bandwidth;
+   /* copy values */
+   dev->range = range;
+   dev->bandwidth = bandwidth;
 
-	/* reset unit */
-	ret = i2c_write_reg(&dev->i2c_dev, BMA180_RESET, BMA180_RESET_SOFT_RESET);
-	if (ret < 0)
+   /* reset unit */
+   ret = i2c_write_reg(&dev->i2c_dev, BMA180_RESET, BMA180_RESET_SOFT_RESET);
+   if (ret < 0)
    {
-		goto out;
+      goto out;
    }
 
-	i2c_dev_sleep(&dev->i2c_dev, 1); // TODO: check
+   i2c_dev_sleep(&dev->i2c_dev, 1); // TODO: check
 
    /* read chip id: */
    ret = i2c_read_reg(&dev->i2c_dev, BMA180_CHIP_ID);
@@ -216,7 +215,7 @@ int bma180_init(bma180_dev_t *dev, i2c_bus_t *bus, bma180_range_t range, bma180_
 #ifdef BMA180_DEBUG
    printf("BMA180, chip_id: 0x%.2x, version: 0x%.2x\n", dev->chip_id, dev->version);
 #endif
-	
+
    ret = bma180_read_calibration(dev);
    if (ret < 0)
    {
@@ -284,15 +283,16 @@ int bma180_read_temp(bma180_dev_t *dev)
       return ret;
    }
    dev->temperature = (float)((int8_t)(ret)) / 2.0 + 24.0;
-	return 0;
+   return 0;
 }
+
 
 int bma180_read_acc(bma180_dev_t *dev)
 {
    /* read acc values */
    uint8_t acc_data[6];
    i2c_dev_lock_bus(&dev->i2c_dev);
-   int ret = i2c_read_reg_block(&dev->i2c_dev, BMA180_ACC_X_LSB, acc_data, sizeof(acc_data));
+   int ret = i2c_read_block_reg(&dev->i2c_dev, BMA180_ACC_X_LSB, acc_data, sizeof(acc_data));
    i2c_dev_unlock_bus(&dev->i2c_dev);
    if (ret < 0)
    {
@@ -304,10 +304,10 @@ int bma180_read_acc(bma180_dev_t *dev)
    {
       /* put them together */
       int16_t raw = (int16_t)((acc_data[(i << 1) + 1] << 8) | (acc_data[(i << 1)] & 0xFC)) / 4;
-		
       /* and scale according to range setting */
       dev->acc.data[i] = ((float)(raw) * ACC_RANGE_TABLE[dev->range] / (float)(1 << 13)) * 9.81;
-	}
+   }
 
-	return 0;
+   return 0;
 }
+

@@ -2,11 +2,52 @@
 
 #include "chips/itg3200/itg3200.h"
 #include "chips/bma180/bma180.h"
+#include "chips/hmc5883/hmc5883.h"
+
 #include "i2c/i2c.h"
-#include "ekf/ekf.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+
+#include "madgwick/MadgwickAHRS.h"
+#include "mahony/MahonyAHRS.h"
+
+#include <math.h>
+
+
+struct
+{
+   float x;
+   float y;
+   float z;
+}
+euler;
+
+
+void euler_angles(void)
+{
+   float s = q0;
+   struct
+   {
+      float x;
+      float y;
+      float z;
+   }
+   v;
+   v.x = q1;
+   v.y = q2;
+   v.z = q3;  
+
+   float sqw = s*s;    
+   float sqx = v.x*v.x;    
+   float sqy = v.y*v.y;    
+   float sqz = v.z*v.z;    
+
+   euler.x = atan2f(2.f * (v.x*v.y + v.z*s), sqx - sqy - sqz + sqw);          
+   euler.y = asinf(-2.f * (v.x*v.z - v.y*s));
+   euler.z = atan2f(2.f * (v.y*v.z + v.x*s), -sqx - sqy + sqz + sqw);    
+}
+
 
 
 int64_t ts_diff(struct timespec *timeA_p, struct timespec *timeB_p)
@@ -18,53 +59,14 @@ int64_t ts_diff(struct timespec *timeA_p, struct timespec *timeB_p)
 
 int main(void)
 {
-
-   memset(&gConfig, 0, sizeof(gConfig));
-
-   /* set-up reference vectors: */
-   gConfig.acc_ref.x = 0;
-   gConfig.acc_ref.y = 0;
-   gConfig.acc_ref.z = -1;
-
-   gConfig.mag_ref.x = 1;
-   gConfig.mag_ref.y = 0;
-   gConfig.mag_ref.z = 0;
-
-   /* set-up cross-axis alignment: */
-   identity_3x3(&gConfig.gyro_alignment);
-   identity_3x3(&gConfig.acc_alignment);
-   identity_3x3(&gConfig.mag_cal);
-
-   /* set-up scales: */
-   gConfig.gyro_scales.x = 1.0;
-   gConfig.gyro_scales.y = 1.0;
-   gConfig.gyro_scales.z = 1.0;
-
-   /* set-up covariances: */
-   gConfig.process_covariance = 10.0;
-   gConfig.acc_covariance = 1000.0;
-   gConfig.mag_covariance = 1000.0;
-
-   ekf_init();
-
-   raw_sensor_data_t sensor_data;
-   sensor_data.new_acc_data = 0;
-   sensor_data.acc.x = 0.0;
-   sensor_data.acc.y = 0.0;
-   sensor_data.acc.z = 1.0;
-
-   sensor_data.new_mag_data = 0;
-   sensor_data.mag.x = 1.0;
-   sensor_data.mag.y = 0.0;
-   sensor_data.mag.z = 0.0;
-
    i2c_bus_t bus;
    i2c_bus_open(&bus, "/dev/i2c-4");
    itg3200_dev_t itg;
    itg3200_init(&itg, &bus, ITG3200_DLPF_42HZ);
    bma180_dev_t bma;
    bma180_init(&bma, &bus, BMA180_RANGE_4G, BMA180_BW_10HZ);
-
+   hmc5883_dev_t hmc;
+   hmc5883_init(&hmc, &bus);
 
    struct timespec curr, prev;
    clock_gettime(CLOCK_MONOTONIC, &prev);
@@ -75,21 +77,14 @@ int main(void)
       prev = curr; 
       
       itg3200_read_gyro(&itg);
-      sensor_data.gyro.x = itg.gyro.x;
-      sensor_data.gyro.y = itg.gyro.y;
-      sensor_data.gyro.z = itg.gyro.z;
-      
       bma180_read_acc(&bma);
-      sensor_data.acc.x = bma.acc.x;
-      sensor_data.acc.y = bma.acc.y;
-      sensor_data.acc.z = bma.acc.z;
-
-      ekf_run(&sensor_data, dt);
-      printf("phi = %.1f, psi = %.1f, theta = %.1f\n", ekf_state.phi, ekf_state.psi, ekf_state.theta);
+      hmc5883_read(&hmc);
       
-      /*printf("\rgyro_xyz: %f %f %f, temperature: %f  ",
-         dev.gyro.x, dev.gyro.y, dev.gyro.z,
-         dev.temperature);*/
+      MahonyAHRSupdate(itg.gyro.x, itg.gyro.y, itg.gyro.z, bma.acc.x, bma.acc.y, bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, dt);
+      euler_angles();
+
+      printf("yaw = %.1f\t\tpitch = %.1f\t\troll = %.1f\n", euler.x, euler.y, euler.z);
+      //printf("phi = %.1f, psi = %.1f, theta = %.1f\n", ekf_state.phi, ekf_state.psi, ekf_state.theta);
    }
    return 0;
 }

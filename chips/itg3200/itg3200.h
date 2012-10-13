@@ -1,6 +1,6 @@
 
 /*
-   ITG3200 I2C Linux Interface
+   ITG3200 I2C Linux Userspace Driver
 
    Copyright (C) 2012 Jan Roemisch and Tobias Simon
 

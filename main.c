@@ -1,6 +1,7 @@
 
 
 #include "chips/itg3200/itg3200.h"
+#include "chips/bma180/bma180.h"
 #include "i2c/i2c.h"
 #include "ekf/ekf.h"
 #include <stdio.h>
@@ -59,8 +60,10 @@ int main(void)
 
    i2c_bus_t bus;
    i2c_bus_open(&bus, "/dev/i2c-4");
-   itg3200_dev_t dev;
-   itg3200_init(&dev, &bus, ITG3200_DLPF_42HZ);
+   itg3200_dev_t itg;
+   itg3200_init(&itg, &bus, ITG3200_DLPF_42HZ);
+   bma180_dev_t bma;
+   bma180_init(&bma, &bus, BMA180_RANGE_4G, BMA180_BW_10HZ);
 
 
    struct timespec curr, prev;
@@ -71,10 +74,15 @@ int main(void)
       float dt = (float)ts_diff(&curr, &prev) / 1000000000.0;
       prev = curr; 
       
-      itg3200_read_gyro(&dev);
-      sensor_data.gyro.x = dev.gyro.x;
-      sensor_data.gyro.y = dev.gyro.y;
-      sensor_data.gyro.z = dev.gyro.z;
+      itg3200_read_gyro(&itg);
+      sensor_data.gyro.x = itg.gyro.x;
+      sensor_data.gyro.y = itg.gyro.y;
+      sensor_data.gyro.z = itg.gyro.z;
+      
+      bma180_read_acc(&bma);
+      sensor_data.acc.x = bma.acc.x;
+      sensor_data.acc.y = bma.acc.y;
+      sensor_data.acc.z = bma.acc.z;
 
       ekf_run(&sensor_data, dt);
       printf("phi = %.1f, psi = %.1f, theta = %.1f\n", ekf_state.phi, ekf_state.psi, ekf_state.theta);

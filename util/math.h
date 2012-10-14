@@ -34,5 +34,3 @@ typedef union
 }
 vec3_t;
 
-
-

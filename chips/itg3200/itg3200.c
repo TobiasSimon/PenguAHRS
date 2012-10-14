@@ -129,14 +129,17 @@ static int zero_gyros(itg3200_dev_t *dev)
 
 int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
 {
+   printf("ITG3200 init\n");
    int ret = 0;
-   i2c_dev_lock_bus(&dev->i2c_dev);
 
    /* copy values */
    i2c_dev_init(&dev->i2c_dev, bus, ITG3200_ADDRESS);
+   i2c_dev_lock_bus(&dev->i2c_dev);
    dev->lp_filter = filter;
+   
 
    /* reset */
+   printf("ITG3200 reset\n");
    ret = i2c_write_reg(&dev->i2c_dev, ITG3200_PWR_MGM, ITG3200_PWR_MGM_H_RESET);
    if (ret < 0)
    {
@@ -144,6 +147,7 @@ int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
    }
 
    /* read back it's address */
+   printf("ITG3200 reading address\n");
    ret = i2c_read_reg(&dev->i2c_dev, ITG3200_WHO_AM_I);
    if (ret < 0)
    {
@@ -151,6 +155,7 @@ int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
    }
 
    /* validate address: */
+   printf("ITG3200 validating address\n");
    uint8_t addr = (uint8_t)(ret);
    if (dev->i2c_dev.addr != addr)
    {
@@ -187,6 +192,7 @@ int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
    ret = zero_gyros(dev);
 
 out:
+   printf("ITG3200 initialized\n");
    i2c_dev_unlock_bus(&dev->i2c_dev);
    return ret;
 }

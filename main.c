@@ -9,8 +9,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "madgwick/MadgwickAHRS.h"
-#include "mahony/MahonyAHRS.h"
+#include "ahrs/mahony_ahrs.h"
 
 #include <math.h>
 
@@ -24,7 +23,7 @@ struct
 euler;
 
 
-void euler_angles(void)
+void euler_angles(float q0, float q1, float q2, float q3)
 {
    float s = q0;
    struct
@@ -61,15 +60,21 @@ int main(void)
 {
    i2c_bus_t bus;
    i2c_bus_open(&bus, "/dev/i2c-4");
+
    itg3200_dev_t itg;
    itg3200_init(&itg, &bus, ITG3200_DLPF_42HZ);
+
    bma180_dev_t bma;
    bma180_init(&bma, &bus, BMA180_RANGE_4G, BMA180_BW_10HZ);
+
    hmc5883_dev_t hmc;
    hmc5883_init(&hmc, &bus);
 
    struct timespec curr, prev;
    clock_gettime(CLOCK_MONOTONIC, &prev);
+
+   mahony_ahrs_t mahony_ahrs;
+   mahony_ahrs_init(&mahony_ahrs, 0.5f, 0.0f);
    while (1)
    {
       clock_gettime(CLOCK_MONOTONIC, &curr);
@@ -80,11 +85,13 @@ int main(void)
       bma180_read_acc(&bma);
       hmc5883_read(&hmc);
       
-      MahonyAHRSupdate(itg.gyro.x, itg.gyro.y, itg.gyro.z, bma.acc.x, bma.acc.y, bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, dt);
-      euler_angles();
+      mahony_ahrs_update(&mahony_ahrs, itg.gyro.x, itg.gyro.y, itg.gyro.z, bma.acc.x, bma.acc.y, bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, dt);
+      euler_angles(mahony_ahrs.q0, mahony_ahrs.q1, mahony_ahrs.q2, mahony_ahrs.q3);
 
-      printf("yaw = %.1f\t\tpitch = %.1f\t\troll = %.1f\n", euler.x, euler.y, euler.z);
-      //printf("phi = %.1f, psi = %.1f, theta = %.1f\n", ekf_state.phi, ekf_state.psi, ekf_state.theta);
+      /*printf("(%.1f, %.1f, %.1f); ", itg.gyro.x, itg.gyro.y, itg.gyro.z);
+      printf("(%.1f, %.1f, %.1f); ", bma.acc.x, bma.acc.y, bma.acc.z);
+      printf("(%.1f, %.1f, %.1f); ", hmc.raw.x, hmc.raw.y, hmc.raw.z);*/
+      printf("y: %.1f, p: %.1f, r: %.1f\n", euler.x, euler.y, euler.z);
    }
    return 0;
 }

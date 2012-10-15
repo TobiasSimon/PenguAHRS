@@ -20,7 +20,7 @@
    MA 02110-1301 USA.
 */
 
-
+#include <string.h>
 #include "hmc5883.h"
 
 
@@ -180,5 +180,32 @@ int hmc5883_read(hmc5883_dev_t *dev)
    {
       dev->processed.vec[i] = dev->scale.vec[i] * dev->raw.vec[i] + dev->shift.vec[i];
    }
+}
+
+
+int hmc5883_avg_mag(hmc5883_dev_t *dev)
+{
+	int i, j, ret = 0;
+	memset(dev->avg.vec, 0, sizeof(dev->avg.vec));
+
+	for (i = 0; i < 200; i++)
+	{
+		ret = hmc5883_read(dev);
+		if(ret < 0)
+		{
+			goto out;
+		}
+		for (j = 0; j < 3; j++)
+		{
+			dev->avg.vec[j] += dev->raw.vec[j];
+		}
+	}
+	for (i = 0; i < 3; i++)
+	{
+		dev->avg.vec[i] /= 200.0;
+	}
+
+out:
+	return ret;
 }
 

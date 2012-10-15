@@ -317,14 +317,14 @@ int bma180_avg_acc(bma180_dev_t *dev)
 {
 	int i, j, ret = 0;
 	
-	memset(dev->avg.data, 0, sizeof(float) * 3);
+	memset(dev->avg.data, 0, sizeof(dev->avg.data));
 
 	for (i = 0; i < 200; i++)
 	{
 		ret = bma180_read_acc(dev);
 		if(ret < 0)
 		{
-			goto end;
+			goto out;
 		}
 		for (j = 0; j < 3; j++)
 		{
@@ -336,7 +336,7 @@ int bma180_avg_acc(bma180_dev_t *dev)
 		dev->avg.data[i] /= 200.0;
 	}
 
-end:
+out:
 	return ret;
 }
 

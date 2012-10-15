@@ -40,6 +40,7 @@ typedef struct
    /* calibration data: */
    vec3_t scale;
    vec3_t shift;
+   vec3_t avg;
 
    /* processed measurements: */
    vec3_t processed;
@@ -51,6 +52,8 @@ int hmc5883_init(hmc5883_dev_t *dev, i2c_bus_t *bus);
 
 
 int hmc5883_read(hmc5883_dev_t *dev);
+
+int hmc5883_avg_mag(hmc5883_dev_t *dev);
 
 
 #endif /* __HMC5883_H__ */

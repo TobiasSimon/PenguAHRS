@@ -92,34 +92,34 @@ void ekf_sensor_init(raw_sensor_data_t *sensor_data)
 
 static void unroll_states(ahrs_state_t *states)
 {
-   while (states->phi > M_PI)
+   while (states->phi > 2.0 * M_PI)
    {
-      states->phi -= M_PI;
+      states->phi -= 2.0 * M_PI;
    }
 
-   while (states->phi < -M_PI)
+   while (states->phi < -2.0 * M_PI)
    {
-      states->phi += M_PI;
+      states->phi += 2.0 * M_PI;
    }
 
-   while (states->theta > M_PI)
+   while (states->theta > 2.0 * M_PI)
    {
-      states->theta -= M_PI;
+      states->theta -= 2.0 * M_PI;
    }
 
-   while (states->theta < -M_PI)
+   while (states->theta < -2.0 * M_PI)
    {
-      states->theta += M_PI;
+      states->theta += 2.0 * M_PI;
    }
 
-   while (states->psi > M_PI)
+   while (states->psi > 2.0 * M_PI)
    {
-      states->psi -= M_PI;
+      states->psi -= 2.0 * M_PI;
    }
 
-   while (states->psi < -M_PI)
+   while (states->psi < -2.0 * M_PI)
    {
-      states->psi += M_PI;
+      states->psi += 2.0 * M_PI;
    }
 }
 

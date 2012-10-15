@@ -23,6 +23,7 @@
 
 
 #include <stdio.h>
+#include <string.h>
 
 #include "bma180.h"
 
@@ -309,5 +310,33 @@ int bma180_read_acc(bma180_dev_t *dev)
    }
 
    return 0;
+}
+
+
+int bma180_avg_acc(bma180_dev_t *dev)
+{
+	int i, j, ret = 0;
+	
+	memset(dev->avg.data, 0, sizeof(float) * 3);
+
+	for (i = 0; i < 200; i++)
+	{
+		ret = bma180_read_acc(dev);
+		if(ret < 0)
+		{
+			goto end;
+		}
+		for (j = 0; j < 3; j++)
+		{
+			dev->avg.data[j] += dev->acc.data[j];
+		}
+	}
+	for (i = 0; i < 3; i++)
+	{
+		dev->avg.data[i] /= 200.0;
+	}
+
+end:
+	return ret;
 }
 

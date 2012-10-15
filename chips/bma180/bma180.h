@@ -121,6 +121,19 @@ typedef struct
       float data[3];
    } 
    acc;
+   
+   /* averaged acc values */
+   union 
+   {
+      struct
+      {
+         float x;
+         float y;
+         float z;
+      };
+      float data[3];
+   }
+   avg;
 }
 bma180_dev_t;
 
@@ -131,6 +144,7 @@ int bma180_read_acc(bma180_dev_t *dev);
 
 int bma180_read_temp(bma180_dev_t *dev);
 
+int bma180_avg_acc(bma180_dev_t *dev);
 
 #endif /* __BMA180_H__ */
 

@@ -10,6 +10,7 @@
 #include <time.h>
 
 #include "ahrs/mahony_ahrs.h"
+#include "ahrs/madgwick_ahrs.h"
 #include "ahrs/ekf.h"
 
 #include <math.h>
@@ -79,6 +80,11 @@ int main(void)
 
    mahony_ahrs_t mahony_ahrs;
    mahony_ahrs_init(&mahony_ahrs, 0.5f, 0.0f);
+    
+   bma180_read_acc(&bma);
+   hmc5883_read(&hmc);
+   madgwick_ahrs_t madgwick_ahrs;
+   madgwick_ahrs_init(&madgwick_ahrs, bma.acc.x, bma.acc.y, bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, 0.1);
    
    memset(&gConfig, 0, sizeof(gConfig));
 

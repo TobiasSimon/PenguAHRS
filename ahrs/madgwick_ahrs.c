@@ -14,45 +14,39 @@
 
 
 #include <math.h>
-
+#include <stdio.h>
 #include "util.h"
 #include "madgwick_ahrs.h"
 
 
 void madgwick_ahrs_init(madgwick_ahrs_t *ahrs, float ax, float ay, float az, float mx, float my, float mz, float beta)
 {
-   float initialRoll, initialPitch;
-   float cosRoll, sinRoll, cosPitch, sinPitch;
-   float magX, magY;
-   float initialHdg, cosHeading, sinHeading;
+   float init_roll = atan2(-ay, -az);
+   float init_pitch = atan2(ax, -az);
 
-   initialRoll  = atan2( -ay, -az );
-   initialPitch = atan2(  ax, -az );
+   float cos_roll = cosf(init_roll);
+   float sin_roll = sinf(init_roll);
+   float cos_pitch = cosf(init_pitch);
+   float sin_pitch = sinf(init_pitch);
 
-   cosRoll =  cosf( initialRoll  );
-   sinRoll =  sinf( initialRoll  );
-   cosPitch = cosf( initialPitch );
-   sinPitch = sinf( initialPitch );
+   float mag_x = mx * cos_pitch + my * sin_roll * sin_pitch + mz * cos_roll * sin_pitch;
+   float mag_y = my * cos_roll - mz * sin_roll;
 
-   magX = mx * cosPitch + my * sinRoll * sinPitch + mz * cosRoll * sinPitch;
+   float init_yaw = atan2(-mag_y, mag_x);
 
-   magY = my * cosRoll - mz * sinRoll;
+   cos_roll =  cosf(init_roll * 0.5f);
+   sin_roll =  sinf(init_roll * 0.5f);
 
-   initialHdg = atan2( -magY, magX );
+   cos_pitch = cosf(init_pitch * 0.5f );
+   sin_pitch = sinf(init_pitch * 0.5f );
 
-   cosRoll =  cosf( initialRoll * 0.5f  );
-   sinRoll =  sinf( initialRoll * 0.5f  );
+   float cosHeading = cosf(init_yaw * 0.5f);
+   float sinHeading = sinf(init_yaw * 0.5f);
 
-   cosPitch = cosf( initialPitch * 0.5f );
-   sinPitch = sinf( initialPitch * 0.5f );
-
-   cosHeading = cosf( initialHdg * 0.5f );
-   sinHeading = sinf( initialHdg * 0.5f );
-
-   ahrs->q0 = cosRoll * cosPitch * cosHeading + sinRoll * sinPitch * sinHeading;
-   ahrs->q1 = sinRoll * cosPitch * cosHeading - cosRoll * sinPitch * sinHeading;
-   ahrs->q2 = cosRoll * sinPitch * cosHeading + sinRoll * cosPitch * sinHeading;
-   ahrs->q3 = cosRoll * cosPitch * sinHeading - sinRoll * sinPitch * cosHeading;
+   ahrs->q0 = cos_roll * cos_pitch * cosHeading + sin_roll * sin_pitch * sinHeading;
+   ahrs->q1 = sin_roll * cos_pitch * cosHeading - cos_roll * sin_pitch * sinHeading;
+   ahrs->q2 = cos_roll * sin_pitch * cosHeading + sin_roll * cos_pitch * sinHeading;
+   ahrs->q3 = cos_roll * cos_pitch * sinHeading - sin_roll * sin_pitch * cosHeading;
    ahrs->beta = beta;
 }
 

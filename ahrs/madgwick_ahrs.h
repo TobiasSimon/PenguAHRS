@@ -24,6 +24,9 @@ typedef struct
 madgwick_ahrs_t;
 
 
+void madgwick_ahrs_init(madgwick_ahrs_t *ahrs, float ax, float ay, float az, float mx, float my, float mz, float beta);
+
+
 void madgwick_ahrs_update(madgwick_ahrs_t *ahrs,
                           float gx, float gy, float gz,
                           float ax, float ay, float az,

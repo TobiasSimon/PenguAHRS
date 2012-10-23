@@ -10,6 +10,7 @@
 #include <time.h>
 
 #include "ahrs/mahony_ahrs.h"
+#include "ahrs/madgwick_ahrs.h"
 #include "ahrs/ekf.h"
 
 #include <math.h>
@@ -60,7 +61,7 @@ int64_t ts_diff(struct timespec *timeA_p, struct timespec *timeB_p)
 int main(void)
 {
    i2c_bus_t bus;
-   i2c_bus_open(&bus, "/dev/i2c-0");
+   i2c_bus_open(&bus, "/dev/i2c-4");
 
    itg3200_dev_t itg;
    itg3200_init(&itg, &bus, ITG3200_DLPF_42HZ);
@@ -68,8 +69,6 @@ int main(void)
    bma180_dev_t bma;
    bma180_init(&bma, &bus, BMA180_RANGE_4G, BMA180_BW_40HZ);
    bma180_avg_acc(&bma);
-
-   printf("%f %f %f\n", bma.avg.x, bma.avg.y, bma.avg.z);
 
    hmc5883_dev_t hmc;
    hmc5883_init(&hmc, &bus);
@@ -79,7 +78,12 @@ int main(void)
 
    mahony_ahrs_t mahony_ahrs;
    mahony_ahrs_init(&mahony_ahrs, 0.5f, 0.0f);
-   
+    
+   bma180_read_acc(&bma);
+   hmc5883_read(&hmc);
+   madgwick_ahrs_t madgwick_ahrs;
+   madgwick_ahrs_init(&madgwick_ahrs, -bma.acc.x, -bma.acc.y, -bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, 0.05);
+
    memset(&gConfig, 0, sizeof(gConfig));
 
    /* set-up reference vectors: */
@@ -134,19 +138,12 @@ int main(void)
       sensor_data.mag.z = hmc.raw.z;
 
      
-      mahony_ahrs_update(&mahony_ahrs, itg.gyro.x, itg.gyro.y, itg.gyro.z, bma.acc.x, bma.acc.y, bma.acc.z, 0.0, 0.0, 0.0, /*hmc.raw.x, hmc.raw.y, hmc.raw.z,*/ dt);
-      euler_angles(mahony_ahrs.q0, mahony_ahrs.q1, mahony_ahrs.q2, mahony_ahrs.q3);
-
-      //printf("%f %f %f\n", itg.gyro.x, itg.gyro.y, itg.gyro.z);
-      //printf("%f %f %f\n", bma.acc.x, bma.acc.y, bma.acc.z - 9.81);
-      /*printf("(%.1f, %.1f, %.1f); ", hmc.raw.x, hmc.raw.y, hmc.raw.z);*/
-      //printf("y: %.1f, p: %.1f, r: %.1f\n", euler.x, euler.y, euler.z);
+      madgwick_ahrs_update(&madgwick_ahrs, itg.gyro.x, itg.gyro.y, itg.gyro.z, -bma.acc.x, -bma.acc.y, -bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, 15.0, dt);
+      euler_angles(madgwick_ahrs.q0, madgwick_ahrs.q1, madgwick_ahrs.q2, madgwick_ahrs.q3);
+      printf("y: %.1f, p: %.1f, r: %.1f\n", euler.x / M_PI * 180, euler.y / M_PI * 180, euler.z / M_PI * 180);
       
-      sensor_data.new_acc_data = 1;
-      sensor_data.new_mag_data = 1;
-	  ekf_run(&sensor_data, dt);
       //printf("\rphi = %f, psi = %f, theta = %f    ", ekf_state.phi, ekf_state.psi, ekf_state.theta);
-      printf("%f %f %f 0 0 0 0 0 0 0 0 0 0 0 0 0\n", ekf_state.theta, ekf_state.phi, ekf_state.psi);
+      //printf("%f %f %f 0 0 0 0 0 0 0 0 0 0 0 0 0\n", ekf_state.theta, ekf_state.phi, ekf_state.psi);
       ///printf("%f %f %f 0 0 0 0 0 0 0 0 0 0 0 0 0\n", euler.y, euler.z, euler.x);
 	  fflush(stdout);
    }

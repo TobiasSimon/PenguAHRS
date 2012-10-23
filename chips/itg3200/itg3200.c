@@ -96,10 +96,10 @@ static int read_gyro_raw(itg3200_dev_t *dev, int16_t *data)
 }
 
 
-static int zero_gyros(itg3200_dev_t *dev)
+int itg3200_zero_gyros(itg3200_dev_t *dev)
 {
    int16_t val[3];
-   int64_t avg[3] = {0, 0, 0};
+   float avg[3] = {0, 0, 0};
 
    int n;
    for (n = 0; n < ITG3200_GYRO_INIT_ITER; n++) 
@@ -113,14 +113,14 @@ static int zero_gyros(itg3200_dev_t *dev)
       int i;
       for (i = 0; i < 3; i++)
       {
-         avg[i] += (int64_t)(val[i]);
+         avg[i] += (float)(val[i]);
       }
    }
 
    int i;
    for (i = 0; i < 3; i++)
    {
-      dev->bias[i] = -(int16_t)(avg[i] / (int64_t)(ITG3200_GYRO_INIT_ITER));
+      dev->bias[i] = -avg[i] / (float)ITG3200_GYRO_INIT_ITER;
    }
 
    return 0;
@@ -145,6 +145,9 @@ int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
    {
       goto out;
    }
+
+   /* 70ms for gyro startup */
+   i2c_dev_sleep(&dev->i2c_dev, 70);
 
    /* read back it's address */
    printf("ITG3200 reading address\n");
@@ -181,15 +184,12 @@ int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
       goto out;
    }
 
-   /* 70ms for gyro startup */
-   i2c_dev_sleep(&dev->i2c_dev, 70);
-
 #ifdef ITG3200_DEBUG
    printf("ITG3200, calibrating\n");
 #endif
    
    /* calibrate: */
-   ret = zero_gyros(dev);
+   ret = itg3200_zero_gyros(dev);
 
 out:
    printf("ITG3200 initialized\n");

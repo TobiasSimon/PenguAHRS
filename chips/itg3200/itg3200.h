@@ -54,7 +54,7 @@ typedef struct
    itg3200_dlpf_t lp_filter;
 
    /* calibration settings: */
-   int16_t bias[3];
+   float bias[3];
 
    /* measurements: */
    float temperature;
@@ -74,6 +74,8 @@ itg3200_dev_t;
 
 
 int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter);
+
+int itg3200_zero_gyros(itg3200_dev_t *dev);
 
 int itg3200_read_gyro(itg3200_dev_t *dev);
 

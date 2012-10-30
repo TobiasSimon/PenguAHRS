@@ -48,7 +48,7 @@ int main(void)
    hmc5883_read(&hmc);
 
    mahony_ahrs_t mahony_ahrs;
-   mahony_ahrs_init(&mahony_ahrs, 0.0015, 0.0f);
+   mahony_ahrs_init(&mahony_ahrs, 0.05, 0.0f);
    quaternion_init(&mahony_ahrs.quat, bma.acc.x, bma.acc.y, bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z);
     
    madgwick_ahrs_t madgwick_ahrs;

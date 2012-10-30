@@ -83,19 +83,13 @@ static void madgwick_ahrs_update_imu(madgwick_ahrs_t *ahrs,
 		s1 *= recipNorm;
 		s2 *= recipNorm;
 		s3 *= recipNorm;
-
-		// Apply feedback step
-		// qDot0 -= sensorConfig.beta * s0;
-		// qDot1 -= sensorConfig.beta * s1;
-		// qDot2 -= sensorConfig.beta * s2;
-		// qDot3 -= sensorConfig.beta * s3;
+	   
+      // Apply feedback step
+	   qDot0 -= ahrs->beta * s0;
+	   qDot1 -= ahrs->beta * s1;
+	   qDot2 -= ahrs->beta * s2;
+	   qDot3 -= ahrs->beta * s3;
 	}
-
-	// Apply feedback step
-	qDot0 -= ahrs->beta * s0;
-	qDot1 -= ahrs->beta * s1;
-	qDot2 -= ahrs->beta * s2;
-	qDot3 -= ahrs->beta * s3;
 
 	// Integrate rate of change of quaternion to yield quaternion
 	ahrs->quat.q0 += qDot0 * dt;

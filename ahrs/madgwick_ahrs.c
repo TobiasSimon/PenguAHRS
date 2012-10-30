@@ -112,6 +112,15 @@ void madgwick_ahrs_update(madgwick_ahrs_t *ahrs, float gx, float gy, float gz,
                         float mx, float my, float mz,
                         float accelCutoff, float dt)
 {
+
+
+   float mag_decl = 0.0;
+   float mx1 = cos(mag_decl) * sqrt(mx * mx + my * my);
+   float my1 = sin(mag_decl) * sqrt(mx * mx + my * my);
+   mx = mx1;
+   my = my1;
+
+
 	float accelSquareSum, recipNorm;
 	float s0, s1, s2, s3;
 	float qDot0, qDot1, qDot2, qDot3;

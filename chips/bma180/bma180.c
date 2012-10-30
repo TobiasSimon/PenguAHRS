@@ -28,7 +28,7 @@
 #include "bma180.h"
 
 
-#define BMA180_DEBUG		1
+#undef BMA180_DEBUG
 
 
 #define BMA180_ADDRESS 0x40

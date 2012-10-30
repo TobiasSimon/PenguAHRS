@@ -11,6 +11,9 @@
 #define __MAHONY_AHRS_H__
 
 
+#include "../util/math.h"
+
+
 typedef struct
 {
    float twoKp; /* 2 * proportional gain (Kp) */
@@ -18,7 +21,7 @@ typedef struct
    float integralFBx;
    float integralFBy;
    float integralFBz;
-   float q0, q1, q2, q3; /* quaternion of sensor frame relative to auxiliary frame */
+   quat_t quat; /* quaternion of sensor frame relative to auxiliary frame */
 }
 mahony_ahrs_t;
 

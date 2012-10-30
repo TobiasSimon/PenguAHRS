@@ -19,34 +19,12 @@
 #include "madgwick_ahrs.h"
 
 
-void madgwick_ahrs_init(madgwick_ahrs_t *ahrs, float ax, float ay, float az, float mx, float my, float mz, float beta)
+void madgwick_ahrs_init(madgwick_ahrs_t *ahrs, float beta)
 {
-   float init_roll = atan2(-ay, -az);
-   float init_pitch = atan2(ax, -az);
-
-   float cos_roll = cosf(init_roll);
-   float sin_roll = sinf(init_roll);
-   float cos_pitch = cosf(init_pitch);
-   float sin_pitch = sinf(init_pitch);
-
-   float mag_x = mx * cos_pitch + my * sin_roll * sin_pitch + mz * cos_roll * sin_pitch;
-   float mag_y = my * cos_roll - mz * sin_roll;
-
-   float init_yaw = atan2(-mag_y, mag_x);
-
-   cos_roll =  cosf(init_roll * 0.5f);
-   sin_roll =  sinf(init_roll * 0.5f);
-
-   cos_pitch = cosf(init_pitch * 0.5f );
-   sin_pitch = sinf(init_pitch * 0.5f );
-
-   float cosHeading = cosf(init_yaw * 0.5f);
-   float sinHeading = sinf(init_yaw * 0.5f);
-
-   ahrs->q0 = cos_roll * cos_pitch * cosHeading + sin_roll * sin_pitch * sinHeading;
-   ahrs->q1 = sin_roll * cos_pitch * cosHeading - cos_roll * sin_pitch * sinHeading;
-   ahrs->q2 = cos_roll * sin_pitch * cosHeading + sin_roll * cos_pitch * sinHeading;
-   ahrs->q3 = cos_roll * cos_pitch * sinHeading - sin_roll * sin_pitch * cosHeading;
+   ahrs->quat.q0 = 1;
+   ahrs->quat.q1 = 0;
+   ahrs->quat.q2 = 0;
+   ahrs->quat.q3 = 0;
    ahrs->beta = beta;
 }
 
@@ -62,10 +40,10 @@ static void madgwick_ahrs_update_imu(madgwick_ahrs_t *ahrs,
 	float _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2 ,_8q1, _8q2, q0q0, q1q1, q2q2, q3q3;
 
 	// Rate of change of quaternion from gyroscope
-	qDot0 = 0.5f * (-ahrs->q1 * gx - ahrs->q2 * gy - ahrs->q3 * gz);
-	qDot1 = 0.5f * ( ahrs->q0 * gx + ahrs->q2 * gz - ahrs->q3 * gy);
-	qDot2 = 0.5f * ( ahrs->q0 * gy - ahrs->q1 * gz + ahrs->q3 * gx);
-	qDot3 = 0.5f * ( ahrs->q0 * gz + ahrs->q1 * gy - ahrs->q2 * gx);
+	qDot0 = 0.5f * (-ahrs->quat.q1 * gx - ahrs->quat.q2 * gy - ahrs->quat.q3 * gz);
+	qDot1 = 0.5f * ( ahrs->quat.q0 * gx + ahrs->quat.q2 * gz - ahrs->quat.q3 * gy);
+	qDot2 = 0.5f * ( ahrs->quat.q0 * gy - ahrs->quat.q1 * gz + ahrs->quat.q3 * gx);
+	qDot3 = 0.5f * ( ahrs->quat.q0 * gz + ahrs->quat.q1 * gy - ahrs->quat.q2 * gx);
 
 	accelSquareSum = ax * ax + ay * ay + az * az;
 
@@ -80,25 +58,25 @@ static void madgwick_ahrs_update_imu(madgwick_ahrs_t *ahrs,
 		az *= recipNorm;
 
 		// Auxiliary variables to avoid repeated arithmetic
-		_2q0 = 2.0f * ahrs->q0;
-		_2q1 = 2.0f * ahrs->q1;
-		_2q2 = 2.0f * ahrs->q2;
-		_2q3 = 2.0f * ahrs->q3;
-		_4q0 = 4.0f * ahrs->q0;
-		_4q1 = 4.0f * ahrs->q1;
-		_4q2 = 4.0f * ahrs->q2;
-		_8q1 = 8.0f * ahrs->q1;
-		_8q2 = 8.0f * ahrs->q2;
-		q0q0 = ahrs->q0 * ahrs->q0;
-		q1q1 = ahrs->q1 * ahrs->q1;
-		q2q2 = ahrs->q2 * ahrs->q2;
-		q3q3 = ahrs->q3 * ahrs->q3;
+		_2q0 = 2.0f * ahrs->quat.q0;
+		_2q1 = 2.0f * ahrs->quat.q1;
+		_2q2 = 2.0f * ahrs->quat.q2;
+		_2q3 = 2.0f * ahrs->quat.q3;
+		_4q0 = 4.0f * ahrs->quat.q0;
+		_4q1 = 4.0f * ahrs->quat.q1;
+		_4q2 = 4.0f * ahrs->quat.q2;
+		_8q1 = 8.0f * ahrs->quat.q1;
+		_8q2 = 8.0f * ahrs->quat.q2;
+		q0q0 = ahrs->quat.q0 * ahrs->quat.q0;
+		q1q1 = ahrs->quat.q1 * ahrs->quat.q1;
+		q2q2 = ahrs->quat.q2 * ahrs->quat.q2;
+		q3q3 = ahrs->quat.q3 * ahrs->quat.q3;
 
 		// Gradient decent algorithm corrective step
 		s0 = _4q0 * q2q2 - _2q2 * ax + _4q0 * q1q1 + _2q1 * ay;
-		s1 = _4q1 * q3q3 + _2q3 * ax + 4.0f * q0q0 * ahrs->q1 + _2q0 * ay - _4q1 + _8q1 * q1q1 + _8q1 * q2q2 - _4q1 * az;
-		s2 = 4.0f * q0q0 * ahrs->q2 - _2q0 * ax + _4q2 * q3q3 + _2q3 * ay - _4q2 + _8q2 * q1q1 + _8q2 * q2q2 - _4q2 * az;
-		s3 = 4.0f * q1q1 * ahrs->q3 + _2q1 * ax + 4.0f * q2q2 * ahrs->q3 + _2q2 * ay;
+		s1 = _4q1 * q3q3 + _2q3 * ax + 4.0f * q0q0 * ahrs->quat.q1 + _2q0 * ay - _4q1 + _8q1 * q1q1 + _8q1 * q2q2 - _4q1 * az;
+		s2 = 4.0f * q0q0 * ahrs->quat.q2 - _2q0 * ax + _4q2 * q3q3 + _2q3 * ay - _4q2 + _8q2 * q1q1 + _8q2 * q2q2 - _4q2 * az;
+		s3 = 4.0f * q1q1 * ahrs->quat.q3 + _2q1 * ax + 4.0f * q2q2 * ahrs->quat.q3 + _2q2 * ay;
 
 		recipNorm = inv_sqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
 		s0 *= recipNorm;
@@ -120,17 +98,17 @@ static void madgwick_ahrs_update_imu(madgwick_ahrs_t *ahrs,
 	qDot3 -= ahrs->beta * s3;
 
 	// Integrate rate of change of quaternion to yield quaternion
-	ahrs->q0 += qDot0 * dt;
-	ahrs->q1 += qDot1 * dt;
-	ahrs->q2 += qDot2 * dt;
-	ahrs->q3 += qDot3 * dt;
+	ahrs->quat.q0 += qDot0 * dt;
+	ahrs->quat.q1 += qDot1 * dt;
+	ahrs->quat.q2 += qDot2 * dt;
+	ahrs->quat.q3 += qDot3 * dt;
 
 	// Normalise quaternion
-	recipNorm = inv_sqrt(ahrs->q0 * ahrs->q0 + ahrs->q1 * ahrs->q1 + ahrs->q2 * ahrs->q2 + ahrs->q3 * ahrs->q3);
-	ahrs->q0 *= recipNorm;
-	ahrs->q1 *= recipNorm;
-	ahrs->q2 *= recipNorm;
-	ahrs->q3 *= recipNorm;
+	recipNorm = inv_sqrt(ahrs->quat.q0 * ahrs->quat.q0 + ahrs->quat.q1 * ahrs->quat.q1 + ahrs->quat.q2 * ahrs->quat.q2 + ahrs->quat.q3 * ahrs->quat.q3);
+	ahrs->quat.q0 *= recipNorm;
+	ahrs->quat.q1 *= recipNorm;
+	ahrs->quat.q2 *= recipNorm;
+	ahrs->quat.q3 *= recipNorm;
 }
 
 
@@ -160,10 +138,10 @@ void madgwick_ahrs_update(madgwick_ahrs_t *ahrs, float gx, float gy, float gz,
 	}
 
 	// Rate of change of quaternion from gyroscope
-	qDot0 = 0.5f * (-ahrs->q1 * gx - ahrs->q2 * gy - ahrs->q3 * gz);
-	qDot1 = 0.5f * ( ahrs->q0 * gx + ahrs->q2 * gz - ahrs->q3 * gy);
-	qDot2 = 0.5f * ( ahrs->q0 * gy - ahrs->q1 * gz + ahrs->q3 * gx);
-	qDot3 = 0.5f * ( ahrs->q0 * gz + ahrs->q1 * gy - ahrs->q2 * gx);
+	qDot0 = 0.5f * (-ahrs->quat.q1 * gx - ahrs->quat.q2 * gy - ahrs->quat.q3 * gz);
+	qDot1 = 0.5f * ( ahrs->quat.q0 * gx + ahrs->quat.q2 * gz - ahrs->quat.q3 * gy);
+	qDot2 = 0.5f * ( ahrs->quat.q0 * gy - ahrs->quat.q1 * gz + ahrs->quat.q3 * gx);
+	qDot3 = 0.5f * ( ahrs->quat.q0 * gz + ahrs->quat.q1 * gy - ahrs->quat.q2 * gx);
 
 	accelSquareSum = ax * ax + ay * ay + az * az;
 
@@ -184,40 +162,40 @@ void madgwick_ahrs_update(madgwick_ahrs_t *ahrs, float gx, float gy, float gz,
 		mz *= recipNorm;
 
 		// Auxiliary variables to avoid repeated arithmetic
-		_2q0mx = 2.0f * ahrs->q0 * mx;
-		_2q0my = 2.0f * ahrs->q0 * my;
-		_2q0mz = 2.0f * ahrs->q0 * mz;
-		_2q1mx = 2.0f * ahrs->q1 * mx;
-		_2q0   = 2.0f * ahrs->q0;
-		_2q1   = 2.0f * ahrs->q1;
-		_2q2   = 2.0f * ahrs->q2;
-		_2q3   = 2.0f * ahrs->q3;
-		_2q0q2 = 2.0f * ahrs->q0 * ahrs->q2;
-		_2q2q3 = 2.0f * ahrs->q2 * ahrs->q3;
-		q0q0   =   ahrs->q0 * ahrs->q0;
-		q0q1   =   ahrs->q0 * ahrs->q1;
-		q0q2   =   ahrs->q0 * ahrs->q2;
-		q0q3   =   ahrs->q0 * ahrs->q3;
-		q1q1   =   ahrs->q1 * ahrs->q1;
-		q1q2   =   ahrs->q1 * ahrs->q2;
-		q1q3   =   ahrs->q1 * ahrs->q3;
-		q2q2   =   ahrs->q2 * ahrs->q2;
-		q2q3   =   ahrs->q2 * ahrs->q3;
-		q3q3   =   ahrs->q3 * ahrs->q3;
+		_2q0mx = 2.0f * ahrs->quat.q0 * mx;
+		_2q0my = 2.0f * ahrs->quat.q0 * my;
+		_2q0mz = 2.0f * ahrs->quat.q0 * mz;
+		_2q1mx = 2.0f * ahrs->quat.q1 * mx;
+		_2q0   = 2.0f * ahrs->quat.q0;
+		_2q1   = 2.0f * ahrs->quat.q1;
+		_2q2   = 2.0f * ahrs->quat.q2;
+		_2q3   = 2.0f * ahrs->quat.q3;
+		_2q0q2 = 2.0f * ahrs->quat.q0 * ahrs->quat.q2;
+		_2q2q3 = 2.0f * ahrs->quat.q2 * ahrs->quat.q3;
+		q0q0   =   ahrs->quat.q0 * ahrs->quat.q0;
+		q0q1   =   ahrs->quat.q0 * ahrs->quat.q1;
+		q0q2   =   ahrs->quat.q0 * ahrs->quat.q2;
+		q0q3   =   ahrs->quat.q0 * ahrs->quat.q3;
+		q1q1   =   ahrs->quat.q1 * ahrs->quat.q1;
+		q1q2   =   ahrs->quat.q1 * ahrs->quat.q2;
+		q1q3   =   ahrs->quat.q1 * ahrs->quat.q3;
+		q2q2   =   ahrs->quat.q2 * ahrs->quat.q2;
+		q2q3   =   ahrs->quat.q2 * ahrs->quat.q3;
+		q3q3   =   ahrs->quat.q3 * ahrs->quat.q3;
 
 		// Reference direction of Earth's magnetic field
-		hx   = mx * q0q0 - _2q0my * ahrs->q3 + _2q0mz * ahrs->q2 + mx * q1q1 + _2q1 * my * ahrs->q2 + _2q1 * mz * ahrs->q3 - mx * q2q2 - mx * q3q3;
-		hy   = _2q0mx * ahrs->q3 + my * q0q0 - _2q0mz * ahrs->q1 + _2q1mx * ahrs->q2 - my * q1q1 + my * q2q2 + _2q2 * mz * ahrs->q3 - my * q3q3;
+		hx   = mx * q0q0 - _2q0my * ahrs->quat.q3 + _2q0mz * ahrs->quat.q2 + mx * q1q1 + _2q1 * my * ahrs->quat.q2 + _2q1 * mz * ahrs->quat.q3 - mx * q2q2 - mx * q3q3;
+		hy   = _2q0mx * ahrs->quat.q3 + my * q0q0 - _2q0mz * ahrs->quat.q1 + _2q1mx * ahrs->quat.q2 - my * q1q1 + my * q2q2 + _2q2 * mz * ahrs->quat.q3 - my * q3q3;
 		_2bx = sqrt(hx * hx + hy * hy);
-		_2bz = -_2q0mx * ahrs->q2 + _2q0my * ahrs->q1 + mz * q0q0 + _2q1mx * ahrs->q3 - mz * q1q1 + _2q2 * my * ahrs->q3 - mz * q2q2 + mz * q3q3;
+		_2bz = -_2q0mx * ahrs->quat.q2 + _2q0my * ahrs->quat.q1 + mz * q0q0 + _2q1mx * ahrs->quat.q3 - mz * q1q1 + _2q2 * my * ahrs->quat.q3 - mz * q2q2 + mz * q3q3;
 		_4bx = 2.0f * _2bx;
 		_4bz = 2.0f * _2bz;
 
 		// Gradient decent algorithm corrective step
-		s0 = -_2q2 * (2.0f * q1q3 - _2q0q2 + ax) + _2q1 * (2.0f * q0q1 + _2q2q3 + ay) - _2bz * ahrs->q2 * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * ahrs->q3 + _2bz * ahrs->q1) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * ahrs->q2 * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
-		s1 =  _2q3 * (2.0f * q1q3 - _2q0q2 + ax) + _2q0 * (2.0f * q0q1 + _2q2q3 + ay) - 4.0f * ahrs->q1 * (1 - 2.0f * q1q1 - 2.0f * q2q2 + az) + _2bz * ahrs->q3 * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * ahrs->q2 + _2bz * ahrs->q0) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * ahrs->q3 - _4bz * ahrs->q1) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
-		s2 = -_2q0 * (2.0f * q1q3 - _2q0q2 + ax) + _2q3 * (2.0f * q0q1 + _2q2q3 + ay) - 4.0f * ahrs->q2 * (1 - 2.0f * q1q1 - 2.0f * q2q2 + az) + (-_4bx * ahrs->q2 - _2bz * ahrs->q0) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * ahrs->q1 + _2bz * ahrs->q3) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * ahrs->q0 - _4bz * ahrs->q2) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
-		s3 =  _2q1 * (2.0f * q1q3 - _2q0q2 + ax) + _2q2 * (2.0f * q0q1 + _2q2q3 + ay) + (-_4bx * ahrs->q3 + _2bz * ahrs->q1) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * ahrs->q0 + _2bz * ahrs->q2) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * ahrs->q1 * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
+		s0 = -_2q2 * (2.0f * q1q3 - _2q0q2 + ax) + _2q1 * (2.0f * q0q1 + _2q2q3 + ay) - _2bz * ahrs->quat.q2 * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * ahrs->quat.q3 + _2bz * ahrs->quat.q1) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * ahrs->quat.q2 * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
+		s1 =  _2q3 * (2.0f * q1q3 - _2q0q2 + ax) + _2q0 * (2.0f * q0q1 + _2q2q3 + ay) - 4.0f * ahrs->quat.q1 * (1 - 2.0f * q1q1 - 2.0f * q2q2 + az) + _2bz * ahrs->quat.q3 * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * ahrs->quat.q2 + _2bz * ahrs->quat.q0) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * ahrs->quat.q3 - _4bz * ahrs->quat.q1) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
+		s2 = -_2q0 * (2.0f * q1q3 - _2q0q2 + ax) + _2q3 * (2.0f * q0q1 + _2q2q3 + ay) - 4.0f * ahrs->quat.q2 * (1 - 2.0f * q1q1 - 2.0f * q2q2 + az) + (-_4bx * ahrs->quat.q2 - _2bz * ahrs->quat.q0) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * ahrs->quat.q1 + _2bz * ahrs->quat.q3) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * ahrs->quat.q0 - _4bz * ahrs->quat.q2) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
+		s3 =  _2q1 * (2.0f * q1q3 - _2q0q2 + ax) + _2q2 * (2.0f * q0q1 + _2q2q3 + ay) + (-_4bx * ahrs->quat.q3 + _2bz * ahrs->quat.q1) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * ahrs->quat.q0 + _2bz * ahrs->quat.q2) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * ahrs->quat.q1 * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
 
 		recipNorm = inv_sqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
 		s0 *= recipNorm;
@@ -233,16 +211,16 @@ void madgwick_ahrs_update(madgwick_ahrs_t *ahrs, float gx, float gy, float gz,
 	}
 
 	// Integrate rate of change of quaternion to yield quaternion
-	ahrs->q0 += qDot0 * dt;
-	ahrs->q1 += qDot1 * dt;
-	ahrs->q2 += qDot2 * dt;
-	ahrs->q3 += qDot3 * dt;
+	ahrs->quat.q0 += qDot0 * dt;
+	ahrs->quat.q1 += qDot1 * dt;
+	ahrs->quat.q2 += qDot2 * dt;
+	ahrs->quat.q3 += qDot3 * dt;
 
 	// Normalise quaternion
-	recipNorm = inv_sqrt(ahrs->q0 * ahrs->q0 + ahrs->q1 * ahrs->q1 + ahrs->q2 * ahrs->q2 + ahrs->q3 * ahrs->q3);
-	ahrs->q0 *= recipNorm;
-	ahrs->q1 *= recipNorm;
-	ahrs->q2 *= recipNorm;
-	ahrs->q3 *= recipNorm;
+	recipNorm = inv_sqrt(ahrs->quat.q0 * ahrs->quat.q0 + ahrs->quat.q1 * ahrs->quat.q1 + ahrs->quat.q2 * ahrs->quat.q2 + ahrs->quat.q3 * ahrs->quat.q3);
+	ahrs->quat.q0 *= recipNorm;
+	ahrs->quat.q1 *= recipNorm;
+	ahrs->quat.q2 *= recipNorm;
+	ahrs->quat.q3 *= recipNorm;
 }
 

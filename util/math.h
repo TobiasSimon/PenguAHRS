@@ -21,6 +21,9 @@
 */
 
 
+#ifndef __MATH_UTIL_H__
+#define __MATH_UTIL_H__
+
 
 typedef union
 {
@@ -33,4 +36,34 @@ typedef union
    float vec[3];
 }
 vec3_t;
+
+
+typedef union
+{
+   struct
+   {
+      float q0;
+      float q1;
+      float q2;
+      float q3;
+   };
+   float vec[4];
+}
+quat_t;
+
+
+typedef union
+{
+   struct
+   {
+      float yaw;
+      float pitch;
+      float roll;
+   };
+   float vec[3];
+}
+euler_t;
+
+
+#endif /* __MATH_UTIL_H__ */
 

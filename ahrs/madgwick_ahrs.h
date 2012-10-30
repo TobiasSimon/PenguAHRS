@@ -15,16 +15,19 @@
 #define __MADGWICK_AHRS_H__
 
 
+#include "../util/math.h"
+
+
 typedef struct
 {
    float beta; /* 2 * beta (Kp) */
    int initialized;
-   float q0, q1, q2, q3; /* quaternion of sensor frame relative to auxiliary frame */
+   quat_t quat; /* quaternion of sensor frame relative to auxiliary frame */
 }
 madgwick_ahrs_t;
 
 
-void madgwick_ahrs_init(madgwick_ahrs_t *ahrs, float ax, float ay, float az, float mx, float my, float mz, float beta);
+void madgwick_ahrs_init(madgwick_ahrs_t *ahrs, float beta);
 
 
 void madgwick_ahrs_update(madgwick_ahrs_t *ahrs,

@@ -20,10 +20,10 @@ void mahony_ahrs_init(mahony_ahrs_t *ahrs, float Kp, float Ki)
    ahrs->integralFBx = 0.0f;
    ahrs->integralFBy = 0.0f;
    ahrs->integralFBz = 0.0f;
-   ahrs->q0 = 1.0f;
-   ahrs->q1 = 0.0f;
-   ahrs->q2 = 0.0f;
-   ahrs->q3 = 0.0f;
+   ahrs->quat.q0 = 1.0f;
+   ahrs->quat.q1 = 0.0f;
+   ahrs->quat.q2 = 0.0f;
+   ahrs->quat.q3 = 0.0f;
 }
 
 
@@ -46,9 +46,9 @@ static void mahony_ahrs_update_imu(mahony_ahrs_t *ahrs,
       az *= recipNorm;        
 
       /* estimated direction of gravity and vector perpendicular to magnetic flux: */
-      halfvx = ahrs->q1 * ahrs->q3 - ahrs->q0 * ahrs->q2;
-      halfvy = ahrs->q0 * ahrs->q1 + ahrs->q2 * ahrs->q3;
-      halfvz = ahrs->q0 * ahrs->q0 - 0.5f + ahrs->q3 * ahrs->q3;
+      halfvx = ahrs->quat.q1 * ahrs->quat.q3 - ahrs->quat.q0 * ahrs->quat.q2;
+      halfvy = ahrs->quat.q0 * ahrs->quat.q1 + ahrs->quat.q2 * ahrs->quat.q3;
+      halfvz = ahrs->quat.q0 * ahrs->quat.q0 - 0.5f + ahrs->quat.q3 * ahrs->quat.q3;
 
       /* error is sum of cross product between estimated and measured direction of gravity: */
       halfex = (ay * halfvz - az * halfvy);
@@ -82,20 +82,20 @@ static void mahony_ahrs_update_imu(mahony_ahrs_t *ahrs,
    gx *= 0.5f * dt; /* pre-multiply common factors */
    gy *= 0.5f * dt;
    gz *= 0.5f * dt;
-   qa = ahrs->q0;
-   qb = ahrs->q1;
-   qc = ahrs->q2;
-   ahrs->q0 += (-qb * gx - qc * gy - ahrs->q3 * gz);
-   ahrs->q1 += (qa * gx + qc * gz - ahrs->q3 * gy);
-   ahrs->q2 += (qa * gy - qb * gz + ahrs->q3 * gx);
-   ahrs->q3 += (qa * gz + qb * gy - qc * gx); 
+   qa = ahrs->quat.q0;
+   qb = ahrs->quat.q1;
+   qc = ahrs->quat.q2;
+   ahrs->quat.q0 += (-qb * gx - qc * gy - ahrs->quat.q3 * gz);
+   ahrs->quat.q1 += (qa * gx + qc * gz - ahrs->quat.q3 * gy);
+   ahrs->quat.q2 += (qa * gy - qb * gz + ahrs->quat.q3 * gx);
+   ahrs->quat.q3 += (qa * gz + qb * gy - qc * gx); 
 
    /* normalise quaternion: */
-   recipNorm = inv_sqrt(ahrs->q0 * ahrs->q0 + ahrs->q1 * ahrs->q1 + ahrs->q2 * ahrs->q2 + ahrs->q3 * ahrs->q3);
-   ahrs->q0 *= recipNorm;
-   ahrs->q1 *= recipNorm;
-   ahrs->q2 *= recipNorm;
-   ahrs->q3 *= recipNorm;
+   recipNorm = inv_sqrt(ahrs->quat.q0 * ahrs->quat.q0 + ahrs->quat.q1 * ahrs->quat.q1 + ahrs->quat.q2 * ahrs->quat.q2 + ahrs->quat.q3 * ahrs->quat.q3);
+   ahrs->quat.q0 *= recipNorm;
+   ahrs->quat.q1 *= recipNorm;
+   ahrs->quat.q2 *= recipNorm;
+   ahrs->quat.q3 *= recipNorm;
 }
 
 
@@ -135,16 +135,16 @@ void mahony_ahrs_update(mahony_ahrs_t *ahrs,
       mz *= recipNorm;   
 
       /* Auxiliary variables to avoid repeated arithmetic: */
-      q0q0 = ahrs->q0 * ahrs->q0;
-      q0q1 = ahrs->q0 * ahrs->q1;
-      q0q2 = ahrs->q0 * ahrs->q2;
-      q0q3 = ahrs->q0 * ahrs->q3;
-      q1q1 = ahrs->q1 * ahrs->q1;
-      q1q2 = ahrs->q1 * ahrs->q2;
-      q1q3 = ahrs->q1 * ahrs->q3;
-      q2q2 = ahrs->q2 * ahrs->q2;
-      q2q3 = ahrs->q2 * ahrs->q3;
-      q3q3 = ahrs->q3 * ahrs->q3;   
+      q0q0 = ahrs->quat.q0 * ahrs->quat.q0;
+      q0q1 = ahrs->quat.q0 * ahrs->quat.q1;
+      q0q2 = ahrs->quat.q0 * ahrs->quat.q2;
+      q0q3 = ahrs->quat.q0 * ahrs->quat.q3;
+      q1q1 = ahrs->quat.q1 * ahrs->quat.q1;
+      q1q2 = ahrs->quat.q1 * ahrs->quat.q2;
+      q1q3 = ahrs->quat.q1 * ahrs->quat.q3;
+      q2q2 = ahrs->quat.q2 * ahrs->quat.q2;
+      q2q3 = ahrs->quat.q2 * ahrs->quat.q3;
+      q3q3 = ahrs->quat.q3 * ahrs->quat.q3;   
 
       /* reference direction of Earth's magnetic field: */
       hx = 2.0f * (mx * (0.5f - q2q2 - q3q3) + my * (q1q2 - q0q3) + mz * (q1q3 + q0q2));
@@ -192,20 +192,20 @@ void mahony_ahrs_update(mahony_ahrs_t *ahrs,
    gx *= 0.5f * dt; /* pre-multiply common factors */
    gy *= 0.5f * dt;
    gz *= 0.5f * dt;
-   qa = ahrs->q0;
-   qb = ahrs->q1;
-   qc = ahrs->q2;
-   ahrs->q0 += (-qb * gx - qc * gy - ahrs->q3 * gz);
-   ahrs->q1 += (qa * gx + qc * gz - ahrs->q3 * gy);
-   ahrs->q2 += (qa * gy - qb * gz + ahrs->q3 * gx);
-   ahrs->q3 += (qa * gz + qb * gy - qc * gx); 
+   qa = ahrs->quat.q0;
+   qb = ahrs->quat.q1;
+   qc = ahrs->quat.q2;
+   ahrs->quat.q0 += (-qb * gx - qc * gy - ahrs->quat.q3 * gz);
+   ahrs->quat.q1 += (qa * gx + qc * gz - ahrs->quat.q3 * gy);
+   ahrs->quat.q2 += (qa * gy - qb * gz + ahrs->quat.q3 * gx);
+   ahrs->quat.q3 += (qa * gz + qb * gy - qc * gx); 
 
    /* normalise quaternion: */
-   recipNorm = inv_sqrt(ahrs->q0 * ahrs->q0 + ahrs->q1 * ahrs->q1 + ahrs->q2 * ahrs->q2 + ahrs->q3 * ahrs->q3);
-   ahrs->q0 *= recipNorm;
-   ahrs->q1 *= recipNorm;
-   ahrs->q2 *= recipNorm;
-   ahrs->q3 *= recipNorm;
+   recipNorm = inv_sqrt(ahrs->quat.q0 * ahrs->quat.q0 + ahrs->quat.q1 * ahrs->quat.q1 + ahrs->quat.q2 * ahrs->quat.q2 + ahrs->quat.q3 * ahrs->quat.q3);
+   ahrs->quat.q0 *= recipNorm;
+   ahrs->quat.q1 *= recipNorm;
+   ahrs->quat.q2 *= recipNorm;
+   ahrs->quat.q3 *= recipNorm;
 }
 
 

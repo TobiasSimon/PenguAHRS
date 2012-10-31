@@ -175,10 +175,14 @@ int hmc5883_read(hmc5883_dev_t *dev)
    dev->raw.z = (int16_t)((data[2] << 8) | data[3]);
    dev->raw.y = (int16_t)((data[4] << 8) | data[5]);
 
+   dev->shift.vec[0] = -61.5;
+   dev->shift.vec[1] = 66.0;
+   dev->shift.vec[2] = 381.5;
+
    int i;
    for (i = 0; i < 3; i++)
    {
-      dev->processed.vec[i] = dev->scale.vec[i] * dev->raw.vec[i] + dev->shift.vec[i];
+      dev->mag.vec[i] = dev->scale.vec[i] * dev->raw.vec[i] + dev->shift.vec[i];
    }
 }
 

@@ -43,7 +43,7 @@ typedef struct
    vec3_t avg;
 
    /* processed measurements: */
-   vec3_t processed;
+   vec3_t mag;
 }
 hmc5883_dev_t;
 

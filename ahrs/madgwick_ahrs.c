@@ -114,7 +114,7 @@ void madgwick_ahrs_update(madgwick_ahrs_t *ahrs, float gx, float gy, float gz,
 {
 
 
-   float mag_decl = 0.0;
+   float mag_decl = 2.0 * M_PI / 180.0;
    float mx1 = cos(mag_decl) * sqrt(mx * mx + my * my);
    float my1 = sin(mag_decl) * sqrt(mx * mx + my * my);
    mx = mx1;

@@ -27,7 +27,7 @@ int64_t ts_diff(struct timespec *timeA_p, struct timespec *timeB_p)
 int main(void)
 {
    i2c_bus_t bus;
-   i2c_bus_open(&bus, "/dev/i2c-16");
+   i2c_bus_open(&bus, "/dev/i2c-0");
 
    /* ITG: */
    itg3200_dev_t itg;
@@ -48,11 +48,11 @@ int main(void)
    hmc5883_read(&hmc);
 
    mahony_ahrs_t mahony_ahrs;
-   mahony_ahrs_init(&mahony_ahrs, 0.05, 0.0f);
-   quaternion_init(&mahony_ahrs.quat, bma.acc.x, bma.acc.y, bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z);
+   mahony_ahrs_init(&mahony_ahrs, 10.5, 0.0f);
+   //quaternion_init(&mahony_ahrs.quat, bma.acc.x, bma.acc.y, bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z);
     
    madgwick_ahrs_t madgwick_ahrs;
-   madgwick_ahrs_init(&madgwick_ahrs, 0.05);
+   madgwick_ahrs_init(&madgwick_ahrs, 1.0);
    quaternion_init(&madgwick_ahrs.quat, bma.acc.x, bma.acc.y, bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z);
 
    struct timespec curr, prev;
@@ -71,14 +71,18 @@ int main(void)
       /* state estimates and output: */
       euler_t euler;
       
-      madgwick_ahrs_update(&madgwick_ahrs, itg.gyro.x, itg.gyro.y, itg.gyro.z, bma.acc.x, bma.acc.y, bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, 11.0, dt);
-      quat_to_euler(&euler, &madgwick_ahrs.quat);
-      printf("%f %f %f ", euler.yaw, euler.pitch, euler.roll);
+      //madgwick_ahrs_update(&madgwick_ahrs, itg.gyro.x, itg.gyro.y, itg.gyro.z, bma.raw.x, bma.raw.y, bma.raw.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, 11.0, dt);
+      madgwick_ahrs_update(&madgwick_ahrs, 0, 0, 0, bma.raw.x, bma.raw.y, bma.raw.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, 11.0, dt);
+      printf("%f %f %f %f\n", madgwick_ahrs.quat.q0, madgwick_ahrs.quat.q1, madgwick_ahrs.quat.q2, madgwick_ahrs.quat.q3);
+
+      //quat_to_euler(&euler, &madgwick_ahrs.quat);
+      //printf("%f %f %f %f %f\n", fmod(euler.yaw * 180.0 / M_PI + 360.0, 360.0), euler.pitch * 180.0 / M_PI, euler.roll * 180.0 / M_PI, bma.acc.x, bma.acc.y);
       
-      mahony_ahrs_update(&mahony_ahrs, itg.gyro.x, itg.gyro.y, itg.gyro.z, bma.acc.x, bma.acc.y, bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, dt);
-      quat_to_euler(&euler, &mahony_ahrs.quat);
-      printf("%f %f %f\n", euler.yaw, euler.pitch, euler.roll);
-	   fflush(stdout);
+      //mahony_ahrs_update(&mahony_ahrs, 0, 0, 0, bma.acc.x, bma.acc.y, -bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, dt);
+      //quat_to_euler(&euler, &mahony_ahrs.quat);
+      //printf("%f %f %f\n", euler.yaw, euler.pitch, euler.roll);
+      //printf("%f %f %f\n", hmc.mag.x, hmc.mag.y, hmc.mag.z);
+      fflush(stdout);
    }
    return 0;
 }

@@ -122,6 +122,19 @@ typedef struct
    } 
    acc;
    
+   /* accelerometer readings: */
+   union 
+   {
+      struct
+      {
+         float x;
+         float y;
+         float z;
+      };
+      float data[3];
+   } 
+   raw;
+   
    /* averaged acc values */
    union 
    {

@@ -39,23 +39,18 @@ int main(void)
    /* BMA: */
    bma180_dev_t bma;
    bma180_init(&bma, &bus, BMA180_RANGE_4G, BMA180_BW_40HZ);
-   bma180_avg_acc(&bma);
 
    /* HMC: */
    hmc5883_dev_t hmc;
    hmc5883_init(&hmc, &bus);
 
-   /* estimator init using sensor readings: */
-   bma180_read_acc(&bma);
-   hmc5883_read(&hmc);
-
+   /* initialize AHRS filter: */
    madgwick_ahrs_t madgwick_ahrs;
    madgwick_ahrs_init(&madgwick_ahrs, STANDARD_BETA);
 
    interval_t interval;
    interval_init(&interval);
    float init = START_BETA;
-
    udp_socket_t *socket = udp_socket_create("127.0.0.1", 5005, 0, 0);
 
    while (1)

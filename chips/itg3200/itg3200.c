@@ -29,49 +29,46 @@
 
 #include "itg3200.h"
 
+#undef ITG3200_DEBUG
 
 #define ITG3200_ADDRESS 0x69
+#define ITG3200_GYRO_INIT_ITER 300
+#define ITG3200_WHO_AM_I       0x00
+#define ITG3200_SMPLRT_DIV     0x15
 
+#define ITG3200_DLPF_FS             0x16
+#define ITG3200_DLPF_FS_DLPF_CFG(x) ((x) & 0x7)
+#define ITG3200_DLPF_FS_FS_SEL(x)   (((x) & 0x3) << 3)
 
-#undef ITG3200_DEBUG
-#define ITG3200_GYRO_INIT_ITER	300
+#define ITG3200_INT_CFG                      0x17
+#define ITG3200_INT_CFG_RAW_RDY_EN           (1 << 0)
+#define ITG3200_INT_CFG_ITG_RDY_EN           (1 << 2)
+#define ITG3200_INT_CFG_INT_ANYRD_RDY_2CLEAR (1 << 4)
+#define ITG3200_INT_CFG_LATCH_INT_EN         (1 << 5)
+#define ITG3200_INT_CFG_OPEN                 (1 << 6)
+#define ITG3200_INT_CFG_ACTL                 (1 << 7)
 
-#define ITG3200_WHO_AM_I						0x00
-#define ITG3200_SMPLRT_DIV						0x15
+#define ITG3200_INT_STATUS              0x1A
+#define ITG3200_INT_STATUS_RAW_DATA_RDY (1 << 0)
+#define ITG3200_INT_STATUS_ITG_RDY      (1 << 2)
 
-#define ITG3200_DLPF_FS							0x16
-#define ITG3200_DLPF_FS_DLPF_CFG(x)				((x) & 0x7)
-#define ITG3200_DLPF_FS_FS_SEL(x)				(((x) & 0x3) << 3)
+#define ITG3200_TEMP_OUT_H 0x1B
+#define ITG3200_TEMP_OUT_L 0x1C
 
-#define ITG3200_INT_CFG							0x17
-#define ITG3200_INT_CFG_RAW_RDY_EN				(1 << 0)
-#define ITG3200_INT_CFG_ITG_RDY_EN				(1 << 2)
-#define ITG3200_INT_CFG_INT_ANYRD_RDY_2CLEAR	(1 << 4)
-#define ITG3200_INT_CFG_LATCH_INT_EN			(1 << 5)
-#define ITG3200_INT_CFG_OPEN					(1 << 6)
-#define ITG3200_INT_CFG_ACTL					(1 << 7)
+#define ITG3200_GYRO_XOUT_H 0x1D
+#define ITG3200_GYRO_XOUT_L 0x1E
+#define ITG3200_GYRO_YOUT_H 0x1F
+#define ITG3200_GYRO_YOUT_L 0x20
+#define ITG3200_GYRO_ZOUT_H 0x21
+#define ITG3200_GYRO_ZOUT_L 0x22
 
-#define ITG3200_INT_STATUS						0x1A
-#define ITG3200_INT_STATUS_RAW_DATA_RDY			(1 << 0)
-#define ITG3200_INT_STATUS_ITG_RDY				(1 << 2)
-
-#define ITG3200_TEMP_OUT_H						0x1B
-#define ITG3200_TEMP_OUT_L						0x1C
-
-#define ITG3200_GYRO_XOUT_H						0x1D
-#define ITG3200_GYRO_XOUT_L						0x1E
-#define ITG3200_GYRO_YOUT_H						0x1F
-#define ITG3200_GYRO_YOUT_L						0x20
-#define ITG3200_GYRO_ZOUT_H						0x21
-#define ITG3200_GYRO_ZOUT_L						0x22
-
-#define ITG3200_PWR_MGM							0x3E
-#define ITG3200_PWR_MGM_H_RESET					(1 << 7)
-#define ITG3200_PWR_MGM_SLEEP					(1 << 6)
-#define ITG3200_PWR_MGM_STBY_XG					(1 << 5)
-#define ITG3200_PWR_MGM_STBY_YG					(1 << 4)
-#define ITG3200_PWR_MGM_STBY_ZG					(1 << 3)
-#define ITG3200_PWR_MGM_CLK_SEL(x)				((x) & 0x3)
+#define ITG3200_PWR_MGM            0x3E
+#define ITG3200_PWR_MGM_H_RESET    (1 << 7)
+#define ITG3200_PWR_MGM_SLEEP      (1 << 6)
+#define ITG3200_PWR_MGM_STBY_XG    (1 << 5)
+#define ITG3200_PWR_MGM_STBY_YG    (1 << 4)
+#define ITG3200_PWR_MGM_STBY_ZG    (1 << 3)
+#define ITG3200_PWR_MGM_CLK_SEL(x) ((x) & 0x3)
 
 
 
@@ -135,7 +132,6 @@ int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
    i2c_dev_init(&dev->i2c_dev, bus, ITG3200_ADDRESS);
    i2c_dev_lock_bus(&dev->i2c_dev);
    dev->lp_filter = filter;
-   
 
    /* reset */
    ret = i2c_write_reg(&dev->i2c_dev, ITG3200_PWR_MGM, ITG3200_PWR_MGM_H_RESET);
@@ -145,7 +141,7 @@ int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
    }
 
    /* 70ms for gyro startup */
-   i2c_dev_sleep(&dev->i2c_dev, 170);
+   i2c_dev_sleep(&dev->i2c_dev, 70);
 
    /* read back it's address */
    ret = i2c_read_reg(&dev->i2c_dev, ITG3200_WHO_AM_I);

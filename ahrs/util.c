@@ -61,14 +61,18 @@ void quat_to_euler(euler_t *euler, quat_t *quat)
 }
 
 
+
+
+
 float inv_sqrt(float x)
 {
-   float halfx = 0.5f * x;
-   float y = x;
-   long i = *(long*)&y;
-   i = 0x5f3759df - (i>>1);
-   y = *(float*)&i;
-   y = y * (1.5f - (halfx * y * y));
-   return y;
+   float xhalf = 0.5f * x;
+   int i = *(int*)&x;              // Read bits as integer.
+   i = 0x5f375a86 - (i >> 1);      // Make an initial guess for Newton-Raphson approximation
+   x = *(float*)&i;                // Convert bits back to float
+   x = x * (1.5f - xhalf * x * x); // Perform left single Newton-Raphson step.
+   x = x * (1.5f - xhalf * x * x); // Perform left single Newton-Raphson step.
+   return x;
 }
+
 

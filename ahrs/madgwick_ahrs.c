@@ -114,12 +114,6 @@ void madgwick_ahrs_update(madgwick_ahrs_t *ahrs, float gx, float gy, float gz,
 {
 
 
-   float mag_decl = 2.0 * M_PI / 180.0;
-   float mx1 = cos(mag_decl) * sqrt(mx * mx + my * my);
-   float my1 = sin(mag_decl) * sqrt(mx * mx + my * my);
-   mx = mx1;
-   my = my1;
-
 
 	float accelSquareSum, recipNorm;
 	float s0, s1, s2, s3;
@@ -189,7 +183,7 @@ void madgwick_ahrs_update(madgwick_ahrs_t *ahrs, float gx, float gy, float gz,
 		// Reference direction of Earth's magnetic field
 		hx   = mx * q0q0 - _2q0my * ahrs->quat.q3 + _2q0mz * ahrs->quat.q2 + mx * q1q1 + _2q1 * my * ahrs->quat.q2 + _2q1 * mz * ahrs->quat.q3 - mx * q2q2 - mx * q3q3;
 		hy   = _2q0mx * ahrs->quat.q3 + my * q0q0 - _2q0mz * ahrs->quat.q1 + _2q1mx * ahrs->quat.q2 - my * q1q1 + my * q2q2 + _2q2 * mz * ahrs->quat.q3 - my * q3q3;
-		_2bx = sqrt(hx * hx + hy * hy);
+      _2bx = sqrt(hx * hx + hy * hy);
 		_2bz = -_2q0mx * ahrs->quat.q2 + _2q0my * ahrs->quat.q1 + mz * q0q0 + _2q1mx * ahrs->quat.q3 - mz * q1q1 + _2q2 * my * ahrs->quat.q3 - mz * q2q2 + mz * q3q3;
 		_4bx = 2.0f * _2bx;
 		_4bz = 2.0f * _2bz;

@@ -1,5 +1,4 @@
 
-
 #include "chips/itg3200/itg3200.h"
 #include "chips/bma180/bma180.h"
 #include "chips/hmc5883/hmc5883.h"
@@ -9,25 +8,29 @@
 #include <string.h>
 #include <time.h>
 
-#include "ahrs/mahony_ahrs.h"
 #include "ahrs/madgwick_ahrs.h"
-#include "ahrs/ekf.h"
 #include "ahrs/util.h"
+#include "util/udp4.h"
+#include "util/interval.h"
 
+#include <stdlib.h>
 #include <math.h>
 
 
-int64_t ts_diff(struct timespec *timeA_p, struct timespec *timeB_p)
-{
-   return ((timeA_p->tv_sec * 1000000000) + timeA_p->tv_nsec) -
-          ((timeB_p->tv_sec * 1000000000) + timeB_p->tv_nsec);
-}
+#define STANDARD_BETA 0.5
+#define START_BETA STANDARD_BETA
+#define BETA_STEP  0.01
+#define FINAL_BETA 0.01
 
 
 int main(void)
 {
    i2c_bus_t bus;
-   i2c_bus_open(&bus, "/dev/i2c-0");
+   int ret = i2c_bus_open(&bus, "/dev/i2c-4");
+   if (ret < 0)
+   {
+      return EXIT_FAILURE;
+   }
 
    /* ITG: */
    itg3200_dev_t itg;
@@ -42,26 +45,28 @@ int main(void)
    hmc5883_dev_t hmc;
    hmc5883_init(&hmc, &bus);
 
-   
    /* estimator init using sensor readings: */
    bma180_read_acc(&bma);
    hmc5883_read(&hmc);
 
-   mahony_ahrs_t mahony_ahrs;
-   mahony_ahrs_init(&mahony_ahrs, 10.5, 0.0f);
-   //quaternion_init(&mahony_ahrs.quat, bma.acc.x, bma.acc.y, bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z);
-    
    madgwick_ahrs_t madgwick_ahrs;
-   madgwick_ahrs_init(&madgwick_ahrs, 1.0);
-   quaternion_init(&madgwick_ahrs.quat, bma.acc.x, bma.acc.y, bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z);
+   madgwick_ahrs_init(&madgwick_ahrs, STANDARD_BETA);
 
-   struct timespec curr, prev;
-   clock_gettime(CLOCK_MONOTONIC, &prev);
+   interval_t interval;
+   interval_init(&interval);
+   float init = START_BETA;
+
+   udp_socket_t *socket = udp_socket_create("127.0.0.1", 5005, 0, 0);
+
    while (1)
    {
-      clock_gettime(CLOCK_MONOTONIC, &curr);
-      float dt = (float)ts_diff(&curr, &prev) / 1000000000.0;
-      prev = curr; 
+      float dt = interval_measure(&interval);
+      init -= BETA_STEP;
+      if (init < FINAL_BETA)
+      {
+         init = FINAL_BETA;
+      }
+      madgwick_ahrs.beta = init;
       
       /* sensor data acquisition: */
       itg3200_read_gyro(&itg);
@@ -71,17 +76,13 @@ int main(void)
       /* state estimates and output: */
       euler_t euler;
       
-      //madgwick_ahrs_update(&madgwick_ahrs, itg.gyro.x, itg.gyro.y, itg.gyro.z, bma.raw.x, bma.raw.y, bma.raw.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, 11.0, dt);
-      madgwick_ahrs_update(&madgwick_ahrs, 0, 0, 0, bma.raw.x, bma.raw.y, bma.raw.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, 11.0, dt);
-      printf("%f %f %f %f\n", madgwick_ahrs.quat.q0, madgwick_ahrs.quat.q1, madgwick_ahrs.quat.q2, madgwick_ahrs.quat.q3);
+      madgwick_ahrs_update(&madgwick_ahrs, itg.gyro.x, itg.gyro.y, itg.gyro.z, bma.raw.x, bma.raw.y, bma.raw.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, 11.0, dt);
+      char buffer[1024];
+      int len = sprintf(buffer, "%f %f %f %f", madgwick_ahrs.quat.q0, madgwick_ahrs.quat.q1, madgwick_ahrs.quat.q2, madgwick_ahrs.quat.q3);
+      udp_socket_send(socket, buffer, len);
 
-      //quat_to_euler(&euler, &madgwick_ahrs.quat);
-      //printf("%f %f %f %f %f\n", fmod(euler.yaw * 180.0 / M_PI + 360.0, 360.0), euler.pitch * 180.0 / M_PI, euler.roll * 180.0 / M_PI, bma.acc.x, bma.acc.y);
-      
-      //mahony_ahrs_update(&mahony_ahrs, 0, 0, 0, bma.acc.x, bma.acc.y, -bma.acc.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, dt);
-      //quat_to_euler(&euler, &mahony_ahrs.quat);
-      //printf("%f %f %f\n", euler.yaw, euler.pitch, euler.roll);
-      //printf("%f %f %f\n", hmc.mag.x, hmc.mag.y, hmc.mag.z);
+      quat_to_euler(&euler, &madgwick_ahrs.quat);
+      printf("%f %f %f\n", fmod(euler.yaw * 180.0 / M_PI + 360.0, 360.0), euler.pitch * 180.0 / M_PI, euler.roll * 180.0 / M_PI);
       fflush(stdout);
    }
    return 0;

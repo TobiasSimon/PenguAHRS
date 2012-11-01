@@ -1,5 +1,4 @@
 
-
 /*
    ITG3200 I2C Linux Userspace Driver
 
@@ -14,11 +13,6 @@
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-   MA 02110-1301 USA.
 */
 
 
@@ -29,9 +23,11 @@
 
 #include "itg3200.h"
 
+
 #undef ITG3200_DEBUG
 
 #define ITG3200_ADDRESS 0x69
+
 #define ITG3200_GYRO_INIT_ITER 300
 #define ITG3200_WHO_AM_I       0x00
 #define ITG3200_SMPLRT_DIV     0x15

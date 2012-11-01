@@ -13,14 +13,11 @@
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-   MA 02110-1301 USA.
 */
 
+
 #include <string.h>
+
 #include "hmc5883.h"
 
 
@@ -189,27 +186,27 @@ int hmc5883_read(hmc5883_dev_t *dev)
 
 int hmc5883_avg_mag(hmc5883_dev_t *dev)
 {
-	int i, j, ret = 0;
-	memset(dev->avg.vec, 0, sizeof(dev->avg.vec));
+   int i, j, ret = 0;
+   memset(dev->avg.vec, 0, sizeof(dev->avg.vec));
 
-	for (i = 0; i < 200; i++)
-	{
-		ret = hmc5883_read(dev);
-		if(ret < 0)
-		{
-			goto out;
-		}
-		for (j = 0; j < 3; j++)
-		{
-			dev->avg.vec[j] += dev->raw.vec[j];
-		}
-	}
-	for (i = 0; i < 3; i++)
-	{
-		dev->avg.vec[i] /= 200.0;
-	}
+   for (i = 0; i < 200; i++)
+   {
+      ret = hmc5883_read(dev);
+      if(ret < 0)
+      {
+         goto out;
+      }
+      for (j = 0; j < 3; j++)
+      {
+         dev->avg.vec[j] += dev->raw.vec[j];
+      }
+   }
+   for (i = 0; i < 3; i++)
+   {
+      dev->avg.vec[i] /= 200.0;
+   }
 
 out:
-	return ret;
+   return ret;
 }
 

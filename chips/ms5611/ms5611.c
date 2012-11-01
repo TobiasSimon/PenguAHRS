@@ -1,18 +1,36 @@
 
+/*
+   MS5611 I2C Linux Userspace Driver
+
+   Copyright (C) 2012 Tobias Simon
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+*/
+
+
 #include <stdint.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
+
 #include "i2c-dev.h"
 #include "ms5611.h"
 
 
 
-#define MS5611_RESET 0x1E
+#define MS5611_RESET        0x1E
 #define MS5611_CONV_D1(osr) (0x40 | ((osr) << 1))
 #define MS5611_CONV_D2(osr) (0x50 | ((osr) << 1))
-#define MS5611_ADC_READ 0x00
+#define MS5611_ADC_READ     0x00
 #define MS5611_PROM_READ(x) (0xA0 | ((x) << 1))
 
 

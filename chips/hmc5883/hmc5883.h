@@ -13,18 +13,15 @@
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-   MA 02110-1301 USA.
 */
 
 
 #ifndef __HMC5883_H__
 #define __HMC5883_H__
 
+
 #include <stdint.h>
+
 #include "../../i2c/i2c.h"
 #include "../../util/math.h"
 
@@ -49,7 +46,6 @@ hmc5883_dev_t;
 
 
 int hmc5883_init(hmc5883_dev_t *dev, i2c_bus_t *bus);
-
 
 int hmc5883_read(hmc5883_dev_t *dev);
 

@@ -41,7 +41,6 @@
 #define FINAL_BETA 0.01
 
 
-vec3_t lp;
 
 int main(void)
 {
@@ -73,6 +72,10 @@ int main(void)
    float init = START_BETA;
    udp_socket_t *socket = udp_socket_create("127.0.0.1", 5005, 0, 0);
 
+   /* accelerometer low-pass filter: */
+   int lp_init[3] = {1, 1, 1};
+   vec3_t lp;
+
    vec3_t global_acc; /* x = N, y = E, z = D */
    while (1)
    {
@@ -99,9 +102,18 @@ int main(void)
       quat_rot_vec(&global_acc, &bma.raw, &madgwick_ahrs.quat);
       for (i = 0; i < 3; i++)
       {
-         lp.vec[i] = (1.0 - alpha) * lp.vec[i] + alpha * global_acc.vec[i];
+         if (lp_init[i])
+         {
+            lp_init[i] = 0;
+            lp.vec[i] = global_acc.vec[i];
+         }
+         else
+         {
+            lp.vec[i] = (1.0 - alpha) * lp.vec[i] + alpha * global_acc.vec[i];
+         }
          global_acc.vec[i] = global_acc.vec[i] - lp.vec[i];
       }
+      printf("%f %f %f\n", global_acc.x, global_acc.y, global_acc.z);
       
       char buffer[1024];
       int len = sprintf(buffer, "%f %f %f %f %f %f %f", madgwick_ahrs.quat.q0, madgwick_ahrs.quat.q1, madgwick_ahrs.quat.q2, madgwick_ahrs.quat.q3,

@@ -84,17 +84,18 @@ def text_2d(value, x, y):
    glMatrixMode(GL_MODELVIEW)
 
 
-def draw_arrow(length):
+def draw_arrow(length, tip = True):
    glPushMatrix()
    glLineWidth(3)
    glBegin(GL_LINES)
    glVertex3f(0, 0, 0)
    glVertex3f(length, 0, 0)
    glEnd()
-   glTranslatef(length, 0, 0)
-   glRotatef(90, 0, 1, 0)
-   gluCylinder(quadratic, 0.05, 0.0, 0.3, 16, 16)
-   gluSphere(quadratic, 0.05, 32, 32);
+   if tip:
+      glTranslatef(length, 0, 0)
+      glRotatef(90, 0, 1, 0)
+      gluCylinder(quadratic, 0.05, 0.0, 0.3, 16, 16)
+      gluSphere(quadratic, 0.05, 32, 32);
    glPopMatrix()
 
 
@@ -131,6 +132,26 @@ def draw():
    glPopMatrix()
    
    if quat:
+      # draw fixed coordinate system:
+      glPushMatrix()
+      glColor3f(0.5, 0.0, 0.0)
+      glPushMatrix()
+      glRotatef(90, 0, 0, 1)
+      draw_arrow(world_acc[0], False)
+      glPopMatrix()
+      glColor3f(0.0, 0.0, 0.5)
+      glPushMatrix()
+      glRotatef(90, 1, 0, 0)
+      draw_arrow(world_acc[1], False)
+      glPopMatrix()
+      glColor3f(0.0, 0.5, 0.0)
+      glPushMatrix()
+      glRotatef(-90, 0, 1, 0)
+      draw_arrow(world_acc[2], False)
+      glPopMatrix()
+      glPopMatrix()
+      print world_acc
+      
       # rotate using AHRS quaternion:
       glRotate(360.0 * acos(quat[0]) / pi, quat[1], quat[2], quat[3])
       
@@ -197,7 +218,8 @@ def draw():
    pygame.display.flip()
 
 
-quat = [1,0,0,0]#None
+world_acc = [0, 0, 0]
+quat = None
 
 
 def read_input():
@@ -206,11 +228,13 @@ def read_input():
    UDP_PORT = 5005
    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
    sock.bind((UDP_IP, UDP_PORT))
-   global quat
+   global quat, world_acc
    while True:
       try:
          line, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-         quat = map(float, line.split(' '))
+         array = map(float, line.split(' '))
+         quat = array[0:4]
+         world_acc = array[4:7]
       except:
          pass
 

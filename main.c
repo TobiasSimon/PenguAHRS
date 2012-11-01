@@ -41,6 +41,8 @@
 #define FINAL_BETA 0.01
 
 
+vec3_t lp;
+
 int main(void)
 {
    i2c_bus_t bus;
@@ -71,13 +73,10 @@ int main(void)
    float init = START_BETA;
    udp_socket_t *socket = udp_socket_create("127.0.0.1", 5005, 0, 0);
 
-   vec3_t in;
-   in.x = 0.0;
-   in.y = 0.0;
-   in.z = -1.0;
-   vec3_t out;
+   vec3_t global_acc; /* x = N, y = E, z = D */
    while (1)
    {
+      int i;
       float dt = interval_measure(&interval);
       init -= BETA_STEP;
       if (init < FINAL_BETA)
@@ -95,15 +94,19 @@ int main(void)
       euler_t euler;
       
       madgwick_ahrs_update(&madgwick_ahrs, itg.gyro.x, itg.gyro.y, itg.gyro.z, bma.raw.x, bma.raw.y, bma.raw.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, 11.0, dt);
-      char buffer[1024];
-      int len = sprintf(buffer, "%f %f %f %f", madgwick_ahrs.quat.q0, madgwick_ahrs.quat.q1, madgwick_ahrs.quat.q2, madgwick_ahrs.quat.q3);
-      udp_socket_send(socket, buffer, len);
       
-      quat_rot_vec(&out, &bma.raw, &madgwick_ahrs.quat);
-      printf("%f %f %f\n", out.x, out.y, out.z);
-
-      //quat_to_euler(&euler, &madgwick_ahrs.quat);
-      //printf("%f %f %f\n", fmod(euler.yaw * 180.0 / M_PI + 360.0, 360.0), euler.pitch * 180.0 / M_PI, euler.roll * 180.0 / M_PI);
+      float alpha = 0.01;
+      quat_rot_vec(&global_acc, &bma.raw, &madgwick_ahrs.quat);
+      for (i = 0; i < 3; i++)
+      {
+         lp.vec[i] = (1.0 - alpha) * lp.vec[i] + alpha * global_acc.vec[i];
+         global_acc.vec[i] = global_acc.vec[i] - lp.vec[i];
+      }
+      
+      char buffer[1024];
+      int len = sprintf(buffer, "%f %f %f %f %f %f %f", madgwick_ahrs.quat.q0, madgwick_ahrs.quat.q1, madgwick_ahrs.quat.q2, madgwick_ahrs.quat.q3,
+                                                        global_acc.x, global_acc.y, global_acc.z);
+      udp_socket_send(socket, buffer, len);
       fflush(stdout);
    }
    return 0;

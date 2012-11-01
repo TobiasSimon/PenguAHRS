@@ -301,8 +301,8 @@ int bma180_read_acc(bma180_dev_t *dev)
       /* put them together */
       int16_t raw = (int16_t)((acc_data[(i << 1) + 1] << 8) | (acc_data[(i << 1)] & 0xFC)) / 4;
       /* and scale according to range setting */
-      dev->raw.data[i] = ((float)(raw) * ACC_RANGE_TABLE[dev->range] / (float)(1 << 13)) * 9.81;
-      dev->acc.data[i] = dev->raw.data[i] - dev->avg.data[i];
+      dev->raw.vec[i] = ((float)(raw) * ACC_RANGE_TABLE[dev->range] / (float)(1 << 13)) * 9.81;
+      dev->acc.vec[i] = dev->raw.vec[i] - dev->avg.vec[i];
    }
 
    return 0;
@@ -311,28 +311,28 @@ int bma180_read_acc(bma180_dev_t *dev)
 
 int bma180_avg_acc(bma180_dev_t *dev)
 {
-	int i, j, ret = 0;
-	
-	memset(dev->avg.data, 0, sizeof(dev->avg.data));
+   int i, j, ret = 0;
 
-	for (i = 0; i < 200; i++)
-	{
-		ret = bma180_read_acc(dev);
-		if(ret < 0)
-		{
-			goto out;
-		}
-		for (j = 0; j < 3; j++)
-		{
-			dev->avg.data[j] += dev->raw.data[j];
-		}
-	}
-	for (i = 0; i < 3; i++)
-	{
-		dev->avg.data[i] /= 200.0;
-	}
+   memset(&dev->avg, 0, sizeof(&dev->avg));
+
+   for (i = 0; i < 200; i++)
+   {
+      ret = bma180_read_acc(dev);
+      if(ret < 0)
+      {
+         goto out;
+      }
+      for (j = 0; j < 3; j++)
+      {
+         dev->avg.vec[j] += dev->raw.vec[j];
+      }
+   }
+   for (i = 0; i < 3; i++)
+   {
+      dev->avg.vec[i] /= 200.0;
+   }
 
 out:
-	return ret;
+   return ret;
 }
 

@@ -23,7 +23,9 @@
 
 
 #include <stdint.h>
+
 #include "../../i2c/i2c.h"
+#include "../../util/math.h"
 
 
 /* accelerometer range: */
@@ -104,44 +106,14 @@ typedef struct
    } 
    gain;
 
-   /* accelerometer readings: */
-   union 
-   {
-      struct
-      {
-         float x;
-         float y;
-         float z;
-      };
-      float data[3];
-   } 
-   acc;
-   
-   /* accelerometer readings: */
-   union 
-   {
-      struct
-      {
-         float x;
-         float y;
-         float z;
-      };
-      float data[3];
-   } 
-   raw;
-   
-   /* averaged acc values */
-   union 
-   {
-      struct
-      {
-         float x;
-         float y;
-         float z;
-      };
-      float data[3];
-   }
-   avg;
+   /* raw reading: */
+   vec3_t raw;
+
+   /* calibration data: */
+   vec3_t avg;
+
+   /* processed output: */
+   vec3_t acc;
 }
 bma180_dev_t;
 

@@ -63,5 +63,8 @@ typedef union
 euler_t;
 
 
+void quat_rot_vec(vec3_t *v_out, vec3_t *v_in, quat_t *quat);
+
+
 #endif /* __MATH_UTIL_H__ */
 

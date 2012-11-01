@@ -29,6 +29,7 @@
 #include "ahrs/util.h"
 #include "util/udp4.h"
 #include "util/interval.h"
+#include "util/math.h"
 
 #include <stdlib.h>
 #include <math.h>
@@ -70,6 +71,11 @@ int main(void)
    float init = START_BETA;
    udp_socket_t *socket = udp_socket_create("127.0.0.1", 5005, 0, 0);
 
+   vec3_t in;
+   in.x = 0.0;
+   in.y = 0.0;
+   in.z = -1.0;
+   vec3_t out;
    while (1)
    {
       float dt = interval_measure(&interval);
@@ -92,9 +98,12 @@ int main(void)
       char buffer[1024];
       int len = sprintf(buffer, "%f %f %f %f", madgwick_ahrs.quat.q0, madgwick_ahrs.quat.q1, madgwick_ahrs.quat.q2, madgwick_ahrs.quat.q3);
       udp_socket_send(socket, buffer, len);
+      
+      quat_rot_vec(&out, &bma.raw, &madgwick_ahrs.quat);
+      printf("%f %f %f\n", out.x, out.y, out.z);
 
-      quat_to_euler(&euler, &madgwick_ahrs.quat);
-      printf("%f %f %f\n", fmod(euler.yaw * 180.0 / M_PI + 360.0, 360.0), euler.pitch * 180.0 / M_PI, euler.roll * 180.0 / M_PI);
+      //quat_to_euler(&euler, &madgwick_ahrs.quat);
+      //printf("%f %f %f\n", fmod(euler.yaw * 180.0 / M_PI + 360.0, 360.0), euler.pitch * 180.0 / M_PI, euler.roll * 180.0 / M_PI);
       fflush(stdout);
    }
    return 0;

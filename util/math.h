@@ -63,6 +63,8 @@ typedef union
 euler_t;
 
 
+/* rotate vector v_in via unit quaternion quat and
+   put result into v_out */
 void quat_rot_vec(vec3_t *v_out, vec3_t *v_in, quat_t *quat);
 
 

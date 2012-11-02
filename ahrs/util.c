@@ -66,13 +66,10 @@ void quat_to_euler(euler_t *euler, quat_t *quat)
 
 float inv_sqrt(float x)
 {
-   float xhalf = 0.5f * x;
-   int i = *(int*)&x;              // Read bits as integer.
-   i = 0x5f375a86 - (i >> 1);      // Make an initial guess for Newton-Raphson approximation
-   x = *(float*)&i;                // Convert bits back to float
-   x = x * (1.5f - xhalf * x * x); // Perform left single Newton-Raphson step.
-   x = x * (1.5f - xhalf * x * x); // Perform left single Newton-Raphson step.
-   return x;
+   /* close-to-optimal  method with low cost from http://pizer.wordpress.com/2008/10/12/fast-inverse-square-root */
+   unsigned int i = 0x5F1F1412 - (*(unsigned int*)&x >> 1);
+   float tmp = *(float*)&i;
+   return tmp * (1.69000231f - 0.714158168f * x * tmp * tmp);
 }
 
 

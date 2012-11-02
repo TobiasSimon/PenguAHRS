@@ -45,7 +45,7 @@
 int main(void)
 {
    i2c_bus_t bus;
-   int ret = i2c_bus_open(&bus, "/dev/i2c-4");
+   int ret = i2c_bus_open(&bus, "/dev/i2c-14");
    if (ret < 0)
    {
       return EXIT_FAILURE;
@@ -99,7 +99,9 @@ int main(void)
       madgwick_ahrs_update(&madgwick_ahrs, itg.gyro.x, itg.gyro.y, itg.gyro.z, bma.raw.x, bma.raw.y, bma.raw.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, 11.0, dt);
       
       float alpha = 0.01;
-      quat_rot_vec(&global_acc, &bma.raw, &madgwick_ahrs.quat);
+      quat_t q_body_to_world;
+      quat_inv(&q_body_to_world, &madgwick_ahrs.quat);
+      quat_rot_vec(&global_acc, &bma.raw, &q_body_to_world);
       for (i = 0; i < 3; i++)
       {
          if (lp_init[i])

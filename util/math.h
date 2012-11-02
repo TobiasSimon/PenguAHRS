@@ -65,7 +65,10 @@ euler_t;
 
 /* rotate vector v_in via unit quaternion quat and
    put result into v_out */
-void quat_rot_vec(vec3_t *v_out, vec3_t *v_in, quat_t *quat);
+void quat_rot_vec(vec3_t *v_out, const vec3_t *v_in, const quat_t *quat);
+
+/* inverse quaternion */
+void quat_inv(quat_t *q_out, const quat_t *q_in);
 
 
 #endif /* __MATH_UTIL_H__ */

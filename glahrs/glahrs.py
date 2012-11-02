@@ -152,6 +152,10 @@ def draw():
       #glPopMatrix()
       
       # rotate using AHRS quaternion:
+      if quat[0] < -1:
+         quat[0] = -1;
+      if quat[0] > 1:
+         quat[0] = 1
       glRotate(360.0 * acos(quat[0]) / pi, quat[1], quat[2], quat[3])
       
       # draw virtual AHRS:
@@ -247,13 +251,10 @@ def main():
    maxfps = 30
    clock = pygame.time.Clock()
    while True:
-      clock.tick(maxfps)
+      #clock.tick(maxfps)
       draw()
       get_event()
 
 if __name__ == "__main__":
-   try:
-      main()
-   except:
-      pass
+   main()
 

@@ -16,6 +16,7 @@
 */
 
 
+#include <errno.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <math.h>
@@ -28,7 +29,7 @@
 
 #define ITG3200_ADDRESS 0x69
 
-#define ITG3200_GYRO_INIT_ITER 300
+#define ITG3200_GYRO_INIT_COUNT 300
 #define ITG3200_WHO_AM_I       0x00
 #define ITG3200_SMPLRT_DIV     0x15
 
@@ -95,7 +96,7 @@ int itg3200_zero_gyros(itg3200_dev_t *dev)
    float avg[3] = {0, 0, 0};
 
    int n;
-   for (n = 0; n < ITG3200_GYRO_INIT_ITER; n++) 
+   for (n = 0; n < ITG3200_GYRO_INIT_COUNT; n++) 
    {
       int ret = read_gyro_raw(dev, val);
       if (ret < 0)
@@ -106,6 +107,10 @@ int itg3200_zero_gyros(itg3200_dev_t *dev)
       int i;
       for (i = 0; i < 3; i++)
       {
+         if (fabs((float)val[i]) > 200)
+         {
+            return -EINVAL;
+         }
          avg[i] += (float)(val[i]);
       }
    }
@@ -113,7 +118,7 @@ int itg3200_zero_gyros(itg3200_dev_t *dev)
    int i;
    for (i = 0; i < 3; i++)
    {
-      dev->bias[i] = -avg[i] / (float)ITG3200_GYRO_INIT_ITER;
+      dev->bias[i] = -avg[i] / (float)ITG3200_GYRO_INIT_COUNT;
    }
 
    return 0;
@@ -150,7 +155,7 @@ int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
    uint8_t addr = (uint8_t)(ret);
    if (dev->i2c_dev.addr != addr)
    {
-      ret = -1;
+      ret = -ENODEV;
       goto out;
    }
 

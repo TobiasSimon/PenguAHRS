@@ -22,6 +22,8 @@
 
 #include <stdint.h>
 
+#include "../../i2c/i2c.h"
+
 
 /* over-sampling rates: */
 typedef enum
@@ -37,9 +39,8 @@ ms5611_osr_t;
 
 typedef struct
 {
-   /* device access: */
-   int bus;
-   uint8_t i2c_addr;
+   /* i2c device: */
+   i2c_dev_t i2c_dev;
    
    /* over-sampling rates: */
    ms5611_osr_t p_osr;
@@ -60,16 +61,10 @@ typedef struct
 ms5611_dev_t;
 
 
-int ms5611_init(ms5611_dev_t *dev, int bus, ms5611_osr_t p_osr, ms5611_osr_t t_osr);
+int ms5611_init(ms5611_dev_t *dev, i2c_bus_t *bus, ms5611_osr_t p_osr, ms5611_osr_t t_osr);
 
 
-void ms5611_measure(ms5611_dev_t *dev);
-
-
-void ms5611_compensate_float(ms5611_dev_t *dev, int filt_en);
-
-
-void ms5611_compensate_int(ms5611_dev_t *dev);
+int ms5611_measure(ms5611_dev_t *dev);
 
 
 #endif /* __MS5611_H__ */

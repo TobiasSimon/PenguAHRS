@@ -180,7 +180,7 @@ int bma180_init(bma180_dev_t *dev, i2c_bus_t *bus, bma180_range_t range, bma180_
       goto out;
    }
 
-   i2c_dev_sleep(&dev->i2c_dev, 100);
+   i2c_dev_sleep(&dev->i2c_dev, 100); // TODO: CHECK
 
    /* read chip id: */
    ret = i2c_read_reg(&dev->i2c_dev, BMA180_CHIP_ID);
@@ -285,6 +285,7 @@ int bma180_read_temp(bma180_dev_t *dev)
 
 int bma180_read_acc(bma180_dev_t *dev)
 {
+   float range = ACC_RANGE_TABLE[dev->range];
    /* read acc values */
    uint8_t acc_data[6];
    i2c_dev_lock_bus(&dev->i2c_dev);
@@ -292,7 +293,8 @@ int bma180_read_acc(bma180_dev_t *dev)
    i2c_dev_unlock_bus(&dev->i2c_dev);
    if (ret < 0)
    {
-      return ret;
+      memset(&dev->raw.vec, 0, sizeof(dev->raw.vec));
+      goto out;
    }
 
    int i;
@@ -301,11 +303,21 @@ int bma180_read_acc(bma180_dev_t *dev)
       /* put them together */
       int16_t raw = (int16_t)((acc_data[(i << 1) + 1] << 8) | (acc_data[(i << 1)] & 0xFC)) / 4;
       /* and scale according to range setting */
-      dev->raw.vec[i] = ((float)(raw) * ACC_RANGE_TABLE[dev->range] / (float)(1 << 13)) * 9.81;
+      float fraw = ((float)(raw) * range / (float)(1 << 13)) * 9.81;
+      if (fraw > range)
+      {
+         fraw = range;
+      }
+      else if (fraw < -range)
+      {
+         fraw = -range;
+      }
+      dev->raw.vec[i] = fraw;
       dev->acc.vec[i] = dev->raw.vec[i] - dev->avg.vec[i];
    }
 
-   return 0;
+out:
+   return ret;
 }
 
 

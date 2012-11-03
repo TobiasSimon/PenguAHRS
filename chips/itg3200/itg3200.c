@@ -127,15 +127,13 @@ int itg3200_zero_gyros(itg3200_dev_t *dev)
 
 int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
 {
-   int ret = 0;
-
    /* copy values */
    i2c_dev_init(&dev->i2c_dev, bus, ITG3200_ADDRESS);
    i2c_dev_lock_bus(&dev->i2c_dev);
    dev->lp_filter = filter;
 
    /* reset */
-   ret = i2c_write_reg(&dev->i2c_dev, ITG3200_PWR_MGM, ITG3200_PWR_MGM_H_RESET);
+   int ret = i2c_write_reg(&dev->i2c_dev, ITG3200_PWR_MGM, ITG3200_PWR_MGM_H_RESET);
    if (ret < 0)
    {
       goto out;

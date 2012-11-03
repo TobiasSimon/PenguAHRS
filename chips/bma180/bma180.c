@@ -180,7 +180,7 @@ int bma180_init(bma180_dev_t *dev, i2c_bus_t *bus, bma180_range_t range, bma180_
       goto out;
    }
 
-   i2c_dev_sleep(&dev->i2c_dev, 100); // TODO: CHECK
+   i2c_dev_sleep(&dev->i2c_dev, 10);
 
    /* read chip id: */
    ret = i2c_read_reg(&dev->i2c_dev, BMA180_CHIP_ID);

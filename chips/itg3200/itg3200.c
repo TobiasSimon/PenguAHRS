@@ -109,7 +109,7 @@ int itg3200_zero_gyros(itg3200_dev_t *dev)
       {
          if (fabs((float)val[i]) > 200)
          {
-            return -EINVAL;
+            return -EAGAIN;
          }
          avg[i] += (float)(val[i]);
       }

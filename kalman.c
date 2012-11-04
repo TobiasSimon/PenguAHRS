@@ -50,7 +50,7 @@ void kalman_init(kalman_t *kf, float q, float r, float pos, float speed)
    kf->K = m_get(2, 1);
    kf->H = m_get(2, 2);
    m_set_val(kf->H, 0, 0, 1.0);
-   //m_ident(kf->H);
+   m_ident(kf->H);
     
    /* A = | 1.0   dt  |
           | 0.0   1.0 |
@@ -125,7 +125,7 @@ void kalman_run(kalman_out_t *out, kalman_t *kalman, const kalman_in_t *in)
    m_set_val(kalman->B, 1, 0, in->dt);
 
    kalman_predict(kalman, in->acc);
-   kalman_correct(kalman, in->pos, 0.0);
+   kalman_correct(kalman, in->pos, in->speed);
    out->pos = v_entry(kalman->x, 0);
    out->speed = v_entry(kalman->x, 1);
 }

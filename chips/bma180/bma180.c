@@ -1,5 +1,4 @@
 
-
 /*
    BMA180 I2C Linux Userspace Driver
 
@@ -303,7 +302,7 @@ int bma180_read_acc(bma180_dev_t *dev)
       /* put them together */
       int16_t raw = (int16_t)((acc_data[(i << 1) + 1] << 8) | (acc_data[(i << 1)] & 0xFC)) / 4;
       /* and scale according to range setting */
-      float fraw = ((float)(raw) * range / (float)(1 << 13)) * 9.81;
+      float fraw = (float)(raw) * range / (float)(1 << 13);
       if (fraw > range)
       {
          fraw = range;
@@ -312,6 +311,7 @@ int bma180_read_acc(bma180_dev_t *dev)
       {
          fraw = -range;
       }
+      fraw *= 9.81;
       dev->raw.vec[i] = fraw;
       dev->acc.vec[i] = dev->raw.vec[i] - dev->avg.vec[i];
    }

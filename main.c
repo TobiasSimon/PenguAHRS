@@ -32,18 +32,20 @@
 #include "util/udp4.h"
 #include "util/interval.h"
 #include "util/math.h"
+#include "util/sliding_avg.h"
 
+#include <errno.h>
 #include <stdlib.h>
 #include <math.h>
 
 
 #define STANDARD_BETA 0.5
 #define START_BETA STANDARD_BETA
-#define BETA_STEP  0.003
+#define BETA_STEP  0.001
 #define FINAL_BETA 0.01
 
 
-void die(char *msg, int code)
+void fatal(char *msg, int code)
 {
    int index = -code;
    if (index < sys_nerr)
@@ -54,24 +56,31 @@ void die(char *msg, int code)
    {
       fprintf(stderr, "fatal error: %s, code %d\n", msg, code);
    }
-   exit(EXIT_FAILURE);
 }
 
+#include <pthread.h>
 
 float alt_start = 0.0;
 float alt_rel = 0.0;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#include <pthread.h>
 
 void *ms5611_reader(void *arg)
 {
    ms5611_dev_t *ms = (ms5611_dev_t *)arg;
    ms5611_measure(ms);
    alt_start = ms->c_a;
+   float last_alt_rel = 0.0;
    while (1)
    {
       ms5611_measure(ms);
+      pthread_mutex_lock(&mutex);
       alt_rel = ms->c_a - alt_start;
+      if (fabs(alt_rel - last_alt_rel) > 10.0)
+      {
+         alt_rel = last_alt_rel;
+      }
+      pthread_mutex_unlock(&mutex);
    }
 }
 
@@ -82,20 +91,27 @@ int main(void)
    int ret = i2c_bus_open(&bus, "/dev/i2c-14");
    if (ret < 0)
    {
-      die("could not open i2c bus", ret);
+      fatal("could not open i2c bus", ret);
+      return EXIT_FAILURE;
    }
 
    /* ITG: */
    itg3200_dev_t itg;
+itg_again:
    ret = itg3200_init(&itg, &bus, ITG3200_DLPF_42HZ);
    if (ret < 0)
    {
-      die("could not inizialize ITG3200", ret);
+      fatal("could not inizialize ITG3200", ret);
+      if (ret == -EAGAIN)
+      {
+         goto itg_again;   
+      }
+      return EXIT_FAILURE;
    }
 
    /* BMA: */
    bma180_dev_t bma;
-   bma180_init(&bma, &bus, BMA180_RANGE_4G, BMA180_BW_40HZ);
+   bma180_init(&bma, &bus, BMA180_RANGE_4G, BMA180_BW_10HZ);
 
    /* HMC: */
    hmc5883_dev_t hmc;
@@ -106,7 +122,8 @@ int main(void)
    ret = ms5611_init(&ms, &bus, MS5611_OSR4096, MS5611_OSR4096);
    if (ret < 0)
    {
-      die("could not inizialize MS5611", ret);
+      fatal("could not inizialize MS5611", ret);
+      return EXIT_FAILURE;
    }
    pthread_t thread;
    pthread_create(&thread, NULL, ms5611_reader, &ms);
@@ -120,15 +137,19 @@ int main(void)
    float init = START_BETA;
    udp_socket_t *socket = udp_socket_create("127.0.0.1", 5005, 0, 0);
 
-   /* accelerometer low-pass filter: */
-   vec3_t lp;
-
+   /* kalman filter: */
    kalman_t kalman1, kalman2, kalman3;
    kalman_init(&kalman1, 1.0, 1.0e1, 0, 0);
    kalman_init(&kalman2, 1.0, 1.0e1, 0, 0);
-   kalman_init(&kalman3, 1.0e-6, 1.0e-3, 0, 0);
+   kalman_init(&kalman3, 1.0e-10, 1.0e-1, 0, 0);
    vec3_t global_acc; /* x = N, y = E, z = D */
    int init_done = 0;
+   int converged = 0;
+   sliding_avg_t *avg[3];
+   avg[0] = sliding_avg_create(100, 0.0);
+   avg[1] = sliding_avg_create(100, 0.0);
+   avg[2] = sliding_avg_create(100, -9.81);
+   float alt_rel_last = 0.0;
    while (1)
    {
       int i;
@@ -148,24 +169,14 @@ int main(void)
       
       /* state estimates and output: */
       euler_t euler;
-      
       madgwick_ahrs_update(&madgwick_ahrs, itg.gyro.x, itg.gyro.y, itg.gyro.z, bma.raw.x, bma.raw.y, bma.raw.z, hmc.raw.x, hmc.raw.y, hmc.raw.z, 11.0, dt);
       
-      float alpha = 0.001;
       quat_t q_body_to_world;
       quat_copy(&q_body_to_world, &madgwick_ahrs.quat);
       quat_rot_vec(&global_acc, &bma.raw, &q_body_to_world);
       for (i = 0; i < 3; i++)
       {
-         if (!init_done)
-         {
-            lp.vec[i] = global_acc.vec[i];
-         }
-         else
-         {
-            lp.vec[i] = (1.0 - alpha) * lp.vec[i] + alpha * global_acc.vec[i];
-         }
-         global_acc.vec[i] = global_acc.vec[i] - lp.vec[i];
+         global_acc.vec[i] -= sliding_avg_calc(avg[i], global_acc.vec[i]);
       }
       if (init_done)
       {
@@ -179,9 +190,24 @@ int main(void)
          kalman_in.acc = global_acc.y;
          kalman_run(&kalman_out, &kalman2, &kalman_in);
          kalman_in.acc = -global_acc.z;
+         pthread_mutex_lock(&mutex);
          kalman_in.pos = alt_rel;
+         kalman_in.speed = -dt * (alt_rel - alt_rel_last);
+         alt_rel_last = alt_rel;
+         pthread_mutex_unlock(&mutex);
          kalman_run(&kalman_out, &kalman3, &kalman_in);
-         printf("%f %f %f\n", -global_acc.z, alt_rel, kalman_out.pos);
+         if (!converged)
+         {
+            if (fabs(kalman_out.pos - alt_rel) < 0.1)
+            {
+               converged = 1;   
+               fprintf(stderr, "init done\n");
+            }
+         }
+         if (converged)
+         {
+            printf("%f %f %f\n", -/*bma.raw.z*/global_acc.z, alt_rel, kalman_out.pos);
+         }
       }
 
       //printf("%f %f %f\n", global_acc.x, global_acc.y, global_acc.z);

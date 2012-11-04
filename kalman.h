@@ -59,6 +59,7 @@ typedef struct
 {
    float dt; /* time elapsed since last kalman step */
    float pos; /* position in m */
+   float speed;
    float acc; /* acceleration min m/s^2 */
 }
 kalman_in_t;

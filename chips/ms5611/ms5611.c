@@ -32,7 +32,7 @@
 
 
 
-static const conv_time_ms[5] =
+static const int conv_time_ms[5] =
 {
    1 /* 0.60ms */,
    2 /* 1.17 */,

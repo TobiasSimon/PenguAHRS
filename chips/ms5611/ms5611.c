@@ -21,6 +21,7 @@
 #include <math.h>
 
 #include "ms5611.h"
+#include "../../util/interval.h"
 
 
 #define MS5611_ADDRESS      0x77
@@ -136,7 +137,6 @@ int ms5611_init(ms5611_dev_t *dev, i2c_bus_t *bus, ms5611_osr_t p_osr, ms5611_os
 {
    /* copy values */
    i2c_dev_init(&dev->i2c_dev, bus, MS5611_ADDRESS);
-   i2c_dev_lock_bus(&dev->i2c_dev);
 
    /* assign over-sampling settings: */
    dev->p_osr = p_osr;
@@ -148,7 +148,7 @@ int ms5611_init(ms5611_dev_t *dev, i2c_bus_t *bus, ms5611_osr_t p_osr, ms5611_os
    {
       goto out;   
    }
-   i2c_dev_sleep(&dev->i2c_dev, 3); /* at least 2.8ms */
+   sleep_ms(3); /* at least 2.8ms */
    
    /* read prom including CRC */
    int i;
@@ -170,7 +170,6 @@ int ms5611_init(ms5611_dev_t *dev, i2c_bus_t *bus, ms5611_osr_t p_osr, ms5611_os
    }
 
 out:
-   i2c_dev_unlock_bus(&dev->i2c_dev);
    return ret;
 }
 
@@ -225,13 +224,12 @@ static void ms5611_compensate(ms5611_dev_t *dev)
 int ms5611_measure(ms5611_dev_t *dev)
 {
    /* read pressure: */
-   i2c_dev_lock_bus(&dev->i2c_dev);
    int ret = ms5611_start_pressure_conv(dev);
    if (ret < 0)
    {
       goto out;   
    }
-   i2c_dev_sleep(&dev->i2c_dev, conv_time_ms[dev->p_osr]);
+   sleep_ms(conv_time_ms[dev->p_osr]);
    ret = ms5611_read_adc(&dev->raw_p, dev);
    if (ret < 0)
    {
@@ -244,7 +242,7 @@ int ms5611_measure(ms5611_dev_t *dev)
    {
       goto out;   
    }
-   i2c_dev_sleep(&dev->i2c_dev, conv_time_ms[dev->t_osr]);
+   sleep_ms(conv_time_ms[dev->t_osr]);
    ret = ms5611_read_adc(&dev->raw_t, dev);
    if (ret < 0)
    {
@@ -253,7 +251,6 @@ int ms5611_measure(ms5611_dev_t *dev)
    ms5611_compensate(dev);
 
 out:
-   i2c_dev_unlock_bus(&dev->i2c_dev);
    return ret;
 }
 

@@ -51,6 +51,18 @@ void i2c_dev_init(i2c_dev_t *dev, i2c_bus_t *bus, uint8_t addr)
 }
 
 
+static void i2c_dev_lock_bus(i2c_dev_t *dev)
+{
+   pthread_mutex_lock(&dev->bus->mutex);
+}
+
+
+static void i2c_dev_unlock_bus(i2c_dev_t *dev)
+{
+   pthread_mutex_unlock(&dev->bus->mutex);
+}
+
+
 static int set_slave_address_if_needed(i2c_dev_t *dev)
 {
    int ret = 0;
@@ -69,83 +81,78 @@ static int set_slave_address_if_needed(i2c_dev_t *dev)
 
 int i2c_write(i2c_dev_t *dev, uint8_t val)
 {
+   i2c_dev_lock_bus(dev);
    int ret = set_slave_address_if_needed(dev);
    if (ret < 0)
    {
-      return ret;
+      goto out;
    }
-   return i2c_smbus_write_byte(dev->bus->handle, val);
+   ret = i2c_smbus_write_byte(dev->bus->handle, val);
+out:
+   i2c_dev_unlock_bus(dev);
+   return ret;
 }
 
 
 int i2c_write_reg(i2c_dev_t *dev, uint8_t reg, uint8_t val)
 {
+   i2c_dev_lock_bus(dev);
    int ret = set_slave_address_if_needed(dev);
    if (ret < 0)
    {
-      return ret;
+      goto out;
    }
-   return i2c_smbus_write_byte_data(dev->bus->handle, reg, val);
+   ret = i2c_smbus_write_byte_data(dev->bus->handle, reg, val);
+out:
+   i2c_dev_unlock_bus(dev);
+   return ret;
 }
 
 
 int i2c_read(i2c_dev_t *dev)
 {
+   i2c_dev_lock_bus(dev);
    int ret = set_slave_address_if_needed(dev);
    if (ret < 0)
    {
-      return ret;
+      goto out;
    }
-   return i2c_smbus_read_byte(dev->bus->handle);
+   ret =i2c_smbus_read_byte(dev->bus->handle);
+out:
+   i2c_dev_unlock_bus(dev);
+   return ret;
 }
 
 
 int i2c_read_reg(i2c_dev_t *dev, uint8_t reg)
 {
+   i2c_dev_lock_bus(dev);
    int ret = set_slave_address_if_needed(dev);
    if (ret < 0)
    {
-      return ret;
+      goto out;
    }
-   return i2c_smbus_read_byte_data(dev->bus->handle, reg);
+   ret = i2c_smbus_read_byte_data(dev->bus->handle, reg);
+out:
+   i2c_dev_unlock_bus(dev);
+   return ret;
 }
 
 
 int i2c_read_block_reg(i2c_dev_t *dev, uint8_t reg, uint8_t *buf, size_t len)
 {
+   i2c_dev_lock_bus(dev);
    int ret = set_slave_address_if_needed(dev);
    if (ret < 0)
    {
-      return ret;
+      goto out;
    }
-   return i2c_smbus_read_i2c_block_data(dev->bus->handle, reg, len, buf) == len ? 0 : -EIO;
-}
-
-
-void i2c_dev_lock_bus(i2c_dev_t *dev)
-{
-   pthread_mutex_lock(&dev->bus->mutex);
-}
-
-
-void i2c_dev_unlock_bus(i2c_dev_t *dev)
-{
-   pthread_mutex_unlock(&dev->bus->mutex);
-}
-
-
-void i2c_dev_sleep(i2c_dev_t *dev, uint32_t msec)
-{
-   /* release the bus: */
+   ret = i2c_smbus_read_i2c_block_data(dev->bus->handle, reg, len, buf) == len ? 0 : -EIO;
+out:
    i2c_dev_unlock_bus(dev);
-   
-   /* sleep: */
-   struct timespec tim, tim2;
-   tim.tv_sec = 0;
-   tim.tv_nsec = msec * 1000 * 1000;
-   nanosleep(&tim , &tim2);
-   
-   /* acquire the bus: */
-   i2c_dev_lock_bus(dev);
+   return ret;
 }
+
+
+
 

@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "bma180.h"
+#include "../../util/interval.h"
 
 
 #undef BMA180_DEBUG
@@ -166,7 +167,6 @@ int bma180_init(bma180_dev_t *dev, i2c_bus_t *bus, bma180_range_t range, bma180_
 {
    int ret = 0;
    i2c_dev_init(&dev->i2c_dev, bus, BMA180_ADDRESS);
-   i2c_dev_lock_bus(&dev->i2c_dev);
 
    /* copy values */
    dev->range = range;
@@ -179,7 +179,7 @@ int bma180_init(bma180_dev_t *dev, i2c_bus_t *bus, bma180_range_t range, bma180_
       goto out;
    }
 
-   i2c_dev_sleep(&dev->i2c_dev, 10);
+   sleep_ms(10);
 
    /* read chip id: */
    ret = i2c_read_reg(&dev->i2c_dev, BMA180_CHIP_ID);
@@ -263,16 +263,13 @@ int bma180_init(bma180_dev_t *dev, i2c_bus_t *bus, bma180_range_t range, bma180_
    }
 
 out:
-   i2c_dev_unlock_bus(&dev->i2c_dev);
    return ret;
 }
 
 
 int bma180_read_temp(bma180_dev_t *dev)
 {
-   i2c_dev_lock_bus(&dev->i2c_dev);
    int ret = i2c_read_reg(&dev->i2c_dev, BMA180_TEMP);
-   i2c_dev_unlock_bus(&dev->i2c_dev);
    if (ret < 0)
    {
       return ret;
@@ -287,9 +284,7 @@ int bma180_read_acc(bma180_dev_t *dev)
    float range = ACC_RANGE_TABLE[dev->range];
    /* read acc values */
    uint8_t acc_data[6];
-   i2c_dev_lock_bus(&dev->i2c_dev);
    int ret = i2c_read_block_reg(&dev->i2c_dev, BMA180_ACC_X_LSB, acc_data, sizeof(acc_data));
-   i2c_dev_unlock_bus(&dev->i2c_dev);
    if (ret < 0)
    {
       memset(&dev->raw.vec, 0, sizeof(dev->raw.vec));

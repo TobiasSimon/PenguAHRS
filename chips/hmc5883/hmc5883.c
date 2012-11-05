@@ -135,7 +135,6 @@ int hmc5883_init(hmc5883_dev_t *dev, i2c_bus_t *bus)
    }
    
    i2c_dev_init(&dev->i2c_dev, bus, HMC5883_ADDRESS);
-   i2c_dev_lock_bus(&dev->i2c_dev);
 
    uint8_t id[3];
    ret = i2c_read_block_reg(&dev->i2c_dev, HMC5883_ID_A, id, sizeof(id));
@@ -157,7 +156,6 @@ int hmc5883_init(hmc5883_dev_t *dev, i2c_bus_t *bus)
    //ret = hmc5883_cal(dev);
 
 out:
-   i2c_dev_unlock_bus(&dev->i2c_dev);
    return ret;
 }
 
@@ -165,9 +163,7 @@ out:
 int hmc5883_read(hmc5883_dev_t *dev)
 {
    uint8_t data[6];
-   i2c_dev_lock_bus(&dev->i2c_dev);
    int ret = i2c_read_block_reg(&dev->i2c_dev, HMC5883_MAGX_H, data, sizeof(data));
-   i2c_dev_unlock_bus(&dev->i2c_dev);
    dev->raw.x = (int16_t)((data[0] << 8) | data[1]);
    dev->raw.z = (int16_t)((data[2] << 8) | data[3]);
    dev->raw.y = (int16_t)((data[4] << 8) | data[5]);

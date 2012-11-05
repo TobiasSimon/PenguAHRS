@@ -17,6 +17,7 @@
 
 
 #include <stdint.h>
+#include <time.h>
 
 #include "interval.h"
 
@@ -42,4 +43,12 @@ float interval_measure(interval_t *interval)
    return dt;
 }
 
+
+void sleep_ms(uint32_t msec)
+{
+   struct timespec tim, tim2;
+   tim.tv_sec = 0;
+   tim.tv_nsec = msec * 1000 * 1000;
+   nanosleep(&tim , &tim2);
+}
 

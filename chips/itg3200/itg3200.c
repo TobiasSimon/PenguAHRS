@@ -23,7 +23,7 @@
 #include <time.h>
 
 #include "itg3200.h"
-
+#include "../../util/interval.h"
 
 #undef ITG3200_DEBUG
 
@@ -129,7 +129,6 @@ int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
 {
    /* copy values */
    i2c_dev_init(&dev->i2c_dev, bus, ITG3200_ADDRESS);
-   i2c_dev_lock_bus(&dev->i2c_dev);
    dev->lp_filter = filter;
 
    /* reset */
@@ -140,7 +139,7 @@ int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
    }
 
    /* 70ms for gyro startup */
-   i2c_dev_sleep(&dev->i2c_dev, 70);
+   sleep_ms(70);
 
    /* read back it's address */
    ret = i2c_read_reg(&dev->i2c_dev, ITG3200_WHO_AM_I);
@@ -183,7 +182,6 @@ int itg3200_init(itg3200_dev_t *dev, i2c_bus_t *bus, itg3200_dlpf_t filter)
    ret = itg3200_zero_gyros(dev);
 
 out:
-   i2c_dev_unlock_bus(&dev->i2c_dev);
    return ret;
 }
 

@@ -57,11 +57,6 @@ int i2c_read(i2c_dev_t *dev);
 int i2c_read_reg(i2c_dev_t *dev, uint8_t reg);
 int i2c_read_block_reg(i2c_dev_t *dev, uint8_t reg, uint8_t *buf, size_t len);
 
-/* locking and sleeping: */
-void i2c_dev_lock_bus(i2c_dev_t *dev);
-void i2c_dev_unlock_bus(i2c_dev_t *dev);
-void i2c_dev_sleep(i2c_dev_t *dev, uint32_t msec);
-
 
 #endif /* __I2C_H__ */
 

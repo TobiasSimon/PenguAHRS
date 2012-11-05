@@ -1,15 +1,25 @@
-dt = 0.05
+def avg(list):
+   s = 0.0
+   for i in list:
+      s += i
+   return s / len(list)
+
+dt = 0.0033333
 s = 0.0
-s1 = 0.0
-kp = 0.5
-kv = 0.9
-prev = 0.0
-ax = 1.0
+
+kv = 0.01
+ki = -0.00001
+kp = 0.1
+
 v = 0.0
-for line in file('alt1.log').readlines():
+prev = 0.0
+sum = 0.0
+avg1 = [0.0] * 60
+avg2 = [0.0] * 60
+for line in file('alt.log').readlines():
    a, r, _ = map(float, line.split(' '))
-   a *= -1.0;
-   v += a * dt + ((r - prev) * dt - v) * kv
-   s += s * a / 2 * dt ** 2 + v + (r - s) * kp
-   print r, s, a / 5
+   sum += (r - prev) / dt
+   v += a * dt + (r - prev) / dt * kv + sum * ki
+   s += a / 2.0 * dt ** 2.0 + v * dt + (r - s) * kp
+   print r, s
    prev = r

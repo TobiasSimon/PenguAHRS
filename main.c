@@ -135,7 +135,7 @@ itg_again:
    interval_t interval;
    interval_init(&interval);
    float init = START_BETA;
-   udp_socket_t *socket = udp_socket_create("10.0.0.3", 5005, 0, 0);
+   udp_socket_t *socket = udp_socket_create("10.0.0.100", 5005, 0, 0);
 
    /* kalman filter: */
    kalman_t kalman1, kalman2, kalman3;
@@ -205,11 +205,14 @@ itg_again:
          }
          if (converged) // && udp_cnt++ > 10)
          {
-            udp_cnt = 0;
-            char buffer[1024];
-            int len = sprintf(buffer, "%f %f %f %f %f %f %f", madgwick_ahrs.quat.q0, madgwick_ahrs.quat.q1, madgwick_ahrs.quat.q2, madgwick_ahrs.quat.q3,
-                                                              global_acc.x, global_acc.y, global_acc.z);
-            //udp_socket_send(socket, buffer, len);
+            if (udp_cnt++ == 10)
+            {
+               char buffer[1024];
+               udp_cnt = 0;
+               int len = sprintf(buffer, "%f %f %f %f %f %f %f", madgwick_ahrs.quat.q0, madgwick_ahrs.quat.q1, madgwick_ahrs.quat.q2, madgwick_ahrs.quat.q3,
+                                                                 global_acc.x, global_acc.y, global_acc.z);
+               udp_socket_send(socket, buffer, len);
+            }
             printf("%f %f %f\n", -global_acc.z, alt_rel, kalman_out.pos);
             fflush(stdout);
          }

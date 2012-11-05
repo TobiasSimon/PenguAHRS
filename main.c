@@ -42,7 +42,7 @@
 #define STANDARD_BETA 0.5
 #define START_BETA STANDARD_BETA
 #define BETA_STEP  0.001
-#define FINAL_BETA 0.01
+#define FINAL_BETA 0.05
 
 
 void fatal(char *msg, int code)
@@ -88,7 +88,7 @@ void *ms5611_reader(void *arg)
 int main(void)
 {
    i2c_bus_t bus;
-   int ret = i2c_bus_open(&bus, "/dev/i2c-14");
+   int ret = i2c_bus_open(&bus, "/dev/i2c-3");
    if (ret < 0)
    {
       fatal("could not open i2c bus", ret);
@@ -135,21 +135,22 @@ itg_again:
    interval_t interval;
    interval_init(&interval);
    float init = START_BETA;
-   udp_socket_t *socket = udp_socket_create("127.0.0.1", 5005, 0, 0);
+   udp_socket_t *socket = udp_socket_create("10.0.0.3", 5005, 0, 0);
 
    /* kalman filter: */
    kalman_t kalman1, kalman2, kalman3;
-   kalman_init(&kalman1, 1.0, 1.0e1, 0, 0);
-   kalman_init(&kalman2, 1.0, 1.0e1, 0, 0);
-   kalman_init(&kalman3, 1.0e-10, 1.0e-1, 0, 0);
+   kalman_init(&kalman1, 1.0e-6, 1.0e-2, 0, 0);
+   kalman_init(&kalman2, 1.0e-6, 1.0e-2, 0, 0);
+   kalman_init(&kalman3, 1.0e-6, 1.0e-2, 0, 0);
    vec3_t global_acc; /* x = N, y = E, z = D */
    int init_done = 0;
    int converged = 0;
    sliding_avg_t *avg[3];
-   avg[0] = sliding_avg_create(100, 0.0);
-   avg[1] = sliding_avg_create(100, 0.0);
-   avg[2] = sliding_avg_create(100, -9.81);
+   avg[0] = sliding_avg_create(1000, 0.0);
+   avg[1] = sliding_avg_create(1000, 0.0);
+   avg[2] = sliding_avg_create(1000, -9.81);
    float alt_rel_last = 0.0;
+   int udp_cnt = 0;
    while (1)
    {
       int i;
@@ -192,8 +193,6 @@ itg_again:
          kalman_in.acc = -global_acc.z;
          pthread_mutex_lock(&mutex);
          kalman_in.pos = alt_rel;
-         kalman_in.speed = -dt * (alt_rel - alt_rel_last);
-         alt_rel_last = alt_rel;
          pthread_mutex_unlock(&mutex);
          kalman_run(&kalman_out, &kalman3, &kalman_in);
          if (!converged)
@@ -204,19 +203,19 @@ itg_again:
                fprintf(stderr, "init done\n");
             }
          }
-         if (converged)
+         if (converged) // && udp_cnt++ > 10)
          {
-            printf("%f %f %f\n", -/*bma.raw.z*/global_acc.z, alt_rel, kalman_out.pos);
+            udp_cnt = 0;
+            char buffer[1024];
+            int len = sprintf(buffer, "%f %f %f %f %f %f %f", madgwick_ahrs.quat.q0, madgwick_ahrs.quat.q1, madgwick_ahrs.quat.q2, madgwick_ahrs.quat.q3,
+                                                              global_acc.x, global_acc.y, global_acc.z);
+            //udp_socket_send(socket, buffer, len);
+            printf("%f %f %f\n", -global_acc.z, alt_rel, kalman_out.pos);
+            fflush(stdout);
          }
       }
 
-      //printf("%f %f %f\n", global_acc.x, global_acc.y, global_acc.z);
       
-      char buffer[1024];
-      int len = sprintf(buffer, "%f %f %f %f %f %f %f", madgwick_ahrs.quat.q0, madgwick_ahrs.quat.q1, madgwick_ahrs.quat.q2, madgwick_ahrs.quat.q3,
-                                                        global_acc.x, global_acc.y, global_acc.z);
-      //udp_socket_send(socket, buffer, len);
-      fflush(stdout);
    }
    return 0;
 }

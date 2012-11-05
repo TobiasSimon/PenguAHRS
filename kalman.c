@@ -50,7 +50,7 @@ void kalman_init(kalman_t *kf, float q, float r, float pos, float speed)
    kf->K = m_get(2, 1);
    kf->H = m_get(2, 2);
    m_set_val(kf->H, 0, 0, 1.0);
-   m_ident(kf->H);
+   //m_ident(kf->H);
     
    /* A = | 1.0   dt  |
           | 0.0   1.0 |

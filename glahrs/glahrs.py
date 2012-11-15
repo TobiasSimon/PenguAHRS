@@ -215,9 +215,9 @@ def draw():
       glPopMatrix()
     
       # draw text:
-      glColor3f(0.0, 0.0, 0.0)
-      euler = quat2euler(*quat)
-      text_2d("Roll:\t%.1f deg\nPitch:\t%.1f deg\nYaw:\t%.1f deg" % (euler[2] * 180 / pi, euler[1] * 180 / pi, euler[0] * 180 / pi), 100, 100)
+      #glColor3f(0.0, 0.0, 0.0)
+      #euler = quat2euler(*quat)
+      #text_2d("Roll:\t%.1f deg\nPitch:\t%.1f deg\nYaw:\t%.1f deg" % (euler[2] * 180 / pi, euler[1] * 180 / pi, euler[0] * 180 / pi), 100, 100)
    pygame.display.flip()
 
 
